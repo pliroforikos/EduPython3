@@ -7,7 +7,7 @@
 | Φάση | Κατάσταση | Commit |
 |---|---|---|
 | Προετοιμασία: repo και αρχεία παράδοσης | ✅ έγινε (Claude) | αρχικό |
-| 0: Rebranding | ⬜ | |
+| 0: Rebranding | ✅ ολοκληρώθηκε | Φάση 0 |
 | 1: Εύρεση interpreter | ⬜ | |
 | 2: Backend σε Python 3 | ⬜ | |
 | 3: Editor, τεκμηρίωση, Βοηθός | ⬜ | |
@@ -23,6 +23,31 @@
 - Το repo δημιουργήθηκε από το myPython2 `c15b9bb` με `git archive` (μόνο αρχεία που παρακολουθεί το git, χωρίς `.pyc`).
 - Προστέθηκαν `GEMINI.md`, `CLAUDE.md`, `docs/PLAN.md` και αυτό το αρχείο.
 - Ο κώδικας είναι ακόμα **ο ίδιος με της Python 2.7**. Το `npm test` περιμένει `C:\Python27`.
+
+### Φάση 0: Rebranding
+**Τι έγινε:**
+- `package.json`: Μετονομασία σε `edupython3` / `EduPython3`, έκδοση `1.0.0`, `appId: gr.edu.python3`, `shortcutName: EduPython3`, `executableName: edupython3`, επικαιροποίηση περιγραφών, repository/homepage σε `pliroforikos/EduPython3`. Αφαιρέθηκε το `install-python27.sh`.
+- `build/installer.nsh`: Αλλαγή φακέλου σε `%ProgramData%\EduPython3`, κανόνας firewall «EduPython3 Classroom», θύρες 47810/47811.
+- `src/main/classroom.js`: `APP = 'edupython3'`, θύρες 47810/47811, διαδρομές `/etc/edupython3/classroom.json` και `%ProgramData%\EduPython3\classroom.json`, υποστήριξη `EDUPY_CLASSROOM`.
+- `src/main/classroomCert.js`: Προεπιλεγμένο CN πιστοποιητικού «EduPython3 teacher».
+- `src/main/main.js`: Προεπιλεγμένος φάκελος εργασίας `Έγγραφα\EduPython3`, τίτλοι παραθύρων, AUMID `gr.edu.python3` (και `.dev` σε dev mode).
+- Εικονίδια: Σχεδιάστηκε SVG `build/icon.svg` στο ύφος του Python (μπλε πάνω με λευκό «Py», κίτρινο κάτω με σκούρο «3»). Δημιουργήθηκαν μέσω των scripts `scripts/render-icon.js` και `scripts/generate_all_icons.py` τα νέα `build/icon.png` (256x256), `src/renderer/icon.png` (256x256) και `build/icon.ico` σε όλα τα μεγέθη (16, 24, 32, 48, 64, 128, 256).
+- Linux: Διαγράφηκε το `scripts/linux/install-python27.sh`. Δημιουργήθηκε το `scripts/linux/edupython3.sh` και διαγράφηκε το `python2-epal.sh`. Στο `scripts/build-linux.js` προστέθηκε `python3` στα Depends και `python3-tk` στα Recommends, και ενημερώθηκε η δημιουργία του φορητού tar.gz.
+- Επικαιροποιήθηκαν `README.md`, `docs/classroom.md`, `src/renderer/index.html`, `src/renderer/teacher.html`, `src/renderer/teacher.js`, `src/renderer/app.js` και `scripts/classroom-emulator.js`.
+
+**Πώς ελέγχθηκε:**
+- `npm test`: Εκτελέστηκαν όλα τα tests (43 JS tests συμπεριλαμβανομένων των 11 της Τάξης + 28 runner tests) και πέρασαν 100%.
+- Επαλήθευση μεγεθών του `.ico` μέσω Pillow: επιβεβαιώθηκε η ύπαρξη των μεγεθών 16x16, 24x24, 32x32, 48x48, 64x64, 128x128, 256x256.
+- Αναζήτηση σε όλο το αποθετήριο για παλιά αναγνωριστικά (`python2-epal`, `Python2-EPAL`, `47800`, `47801`, `gr.epal`): κανένα υπόλειμμα στον κώδικα της εφαρμογής.
+
+**Αποκλίσεις από το σχέδιο και γιατί:**
+- Καμία.
+
+**Tests που μένουν σπασμένα (και σε ποια φάση διορθώνονται):**
+- Κανένα, όλα περνούν πράσινα.
+
+**Για έλεγχο από τον χρήστη:**
+- Οπτικός έλεγχος του νέου σχεδίου εικονιδίου «Py 3».
 
 <!-- Πρότυπο για κάθε φάση:
 

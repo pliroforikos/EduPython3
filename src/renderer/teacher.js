@@ -107,7 +107,7 @@
       $('#t-class').hidden = false;
       $('#t-title-name').textContent = $('#t-name').value.trim() || 'Τάξη';
       $('#t-title-room').textContent = $('#t-room').value.trim();
-      document.title = `Τάξη${$('#t-room').value.trim() ? ` ${$('#t-room').value.trim()}` : ''} – Python 2.7 ΕΠΑΛ`;
+      document.title = `Τάξη${$('#t-room').value.trim() ? ` ${$('#t-room').value.trim()}` : ''} – EduPython3`;
       this.showPin(r.pin);
       $('#t-info-ip').textContent = r.addresses.join(', ') || '(καμία σύνδεση δικτύου)';
       $('#t-info-port').textContent = r.port;
@@ -209,7 +209,7 @@
       $('#t-counts').innerHTML = '';
       $('#t-counts').append(el('span', '', `Συνδεδεμένοι: ${online}${all.length > online ? ` / ${all.length}` : ''}`));
       if (hands) $('#t-counts').append(el('span', 'hands', `✋ ${hands}`));
-      document.title = `${hands ? `(✋ ${hands}) ` : ''}Τάξη – Python 2.7 ΕΠΑΛ`;
+      document.title = `${hands ? `(✋ ${hands}) ` : ''}Τάξη – EduPython3`;
     },
 
     makeCard(s) {

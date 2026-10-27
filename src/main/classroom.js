@@ -19,10 +19,10 @@ const tls = require('tls');
 const { EventEmitter } = require('events');
 const { fingerprint, normalizeFingerprint } = require('./classroomCert');
 
-const APP = 'python2-epal';
+const APP = 'edupython3';
 const PROTOCOL = 1;
-const DEFAULT_PORT = 47800;
-const DISCOVERY_PORT = 47801;
+const DEFAULT_PORT = 47810;
+const DISCOVERY_PORT = 47811;
 const MAX_LINE = 512 * 1024;
 const MAX_TEXT = 200 * 1024;
 const DISCOVER_EVERY = 3000;
@@ -118,9 +118,10 @@ function lanAddresses() {
 
 /** Το αρχείο εμπιστοσύνης του υπολογιστή: γράφεται από τον διαχειριστή, όχι από τον μαθητή. */
 function trustFilePath() {
+  if (process.env.EDUPY_CLASSROOM) return process.env.EDUPY_CLASSROOM;
   if (process.env.EPAL_CLASSROOM) return process.env.EPAL_CLASSROOM;
-  if (process.platform === 'win32') return path.join(process.env.ProgramData || 'C:\\ProgramData', 'Python2-EPAL', 'classroom.json');
-  return '/etc/python2-epal/classroom.json';
+  if (process.platform === 'win32') return path.join(process.env.ProgramData || 'C:\\ProgramData', 'EduPython3', 'classroom.json');
+  return '/etc/edupython3/classroom.json';
 }
 
 /**

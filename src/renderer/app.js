@@ -295,7 +295,7 @@
     updateTitle() {
       const t = this.active;
       if (!t) return;
-      document.title = `${t.title}${this.isDirty(t) ? ' ●' : ''} – Python 2.7 ΕΠΑΛ`;
+      document.title = `${t.title}${this.isDirty(t) ? ' ●' : ''} – EduPython3`;
       $('#st-file').textContent = t.path || '(δεν έχει αποθηκευτεί)';
     },
 

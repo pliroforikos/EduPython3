@@ -31,9 +31,9 @@
 
 ### Α. Υπολογιστής καθηγητή σε Windows
 
-1. Εγκατάσταση με το `Python2-EPAL-<έκδοση>-setup.exe`. Ο installer βάζει και τον κανόνα του Τείχους προστασίας
-   (θύρες TCP 47800 και UDP 47801), οπότε τα Windows δεν θα ρωτήσουν.
-2. Εγκατάσταση της Python 2.7 (π.χ. 2.7.18 από την python.org) στο `C:\Python27`.
+1. Εγκατάσταση με το `EduPython3-<έκδοση>-setup.exe`. Ο installer βάζει και τον κανόνα του Τείχους προστασίας
+   (θύρες TCP 47810 και UDP 47811), οπότε τα Windows δεν θα ρωτήσουν.
+2. Εγκατάσταση της Python 3 (3.10 έως 3.14 από την python.org).
 3. Στην εφαρμογή: **Τάξη → Λειτουργία καθηγητή…**, όνομα και εργαστήριο, **Έναρξη τάξης**.
 4. **Εξαγωγή classroom.json…** και αποθήκευση, π.χ. σε USB.
 
@@ -42,15 +42,14 @@
 
 ### Β. Υπολογιστής καθηγητή σε Linux (Ubuntu, Linux Mint, Debian)
 
-1. Εγκατάσταση της εφαρμογής και της Python 2.7:
+1. Εγκατάσταση της εφαρμογής και της Python 3:
    ```
-   sudo apt install ./python2-epal_<έκδοση>_amd64.deb
-   sudo bash /opt/Python2-EPAL/resources/install-python27.sh
+   sudo apt install ./edupython3_<έκδοση>_amd64.deb python3 python3-tk
    ```
 2. Αν είναι ενεργό το τείχος προστασίας (`sudo ufw status`· στο Ubuntu είναι από προεπιλογή ανενεργό):
    ```
-   sudo ufw allow 47800/tcp
-   sudo ufw allow 47801/udp
+   sudo ufw allow 47810/tcp
+   sudo ufw allow 47811/udp
    ```
 3. Στην εφαρμογή: **Τάξη → Λειτουργία καθηγητή… → Έναρξη τάξης → Εξαγωγή classroom.json…**.
 
@@ -59,7 +58,7 @@
 **Με την εγκατάσταση** (προτείνεται): ο installer αντιγράφει το αρχείο και κλειδώνει τον φάκελο για τους μαθητές.
 Σε κάθε υπολογιστή, από γραμμή εντολών **ως διαχειριστής**:
 ```
-Python2-EPAL-<έκδοση>-setup.exe /S /CLASSROOM=E:\classroom.json
+EduPython3-<έκδοση>-setup.exe /S /CLASSROOM=E:\classroom.json
 ```
 Το `E:\classroom.json` μπορεί να είναι και κοινόχρηστος φάκελος, π.χ. `\\server\share\classroom.json`. Χωρίς το `/S`
 εμφανίζεται κανονικά ο οδηγός εγκατάστασης.
@@ -67,17 +66,14 @@ Python2-EPAL-<έκδοση>-setup.exe /S /CLASSROOM=E:\classroom.json
 **Σε υπολογιστή όπου η εφαρμογή είναι ήδη εγκατεστημένη, ή για την έκδοση portable:** οι εντολές PowerShell της
 ενότητας [Στους υπολογιστές των μαθητών](#2-στους-υπολογιστές-των-μαθητών) (τρόπος Β).
 
-Και η Python 2.7 στο `C:\Python27`.
-
 ### Δ. Υπολογιστές μαθητών σε Linux
 
 ```
-sudo apt install ./python2-epal_<έκδοση>_amd64.deb
-sudo bash /opt/Python2-EPAL/resources/install-python27.sh
-sudo mkdir -p /etc/python2-epal
-sudo cp classroom.json /etc/python2-epal/
+sudo apt install ./edupython3_<έκδοση>_amd64.deb python3 python3-tk
+sudo mkdir -p /etc/edupython3
+sudo cp classroom.json /etc/edupython3/
 ```
-Ο φάκελος `/etc/python2-epal` ανήκει στον root, οπότε οι μαθητές μπορούν μόνο να διαβάσουν το αρχείο. Στους μαθητές
+Ο φάκελος `/etc/edupython3` ανήκει στον root, οπότε οι μαθητές μπορούν μόνο να διαβάσουν το αρχείο. Στους μαθητές
 δεν χρειάζεται κανόνας τείχους προστασίας.
 
 ### Έλεγχος
@@ -110,20 +106,20 @@ sudo cp classroom.json /etc/python2-epal/
 
 | Σύστημα | Θέση |
 |---|---|
-| Windows | `C:\ProgramData\Python2-EPAL\classroom.json` |
-| Linux | `/etc/python2-epal/classroom.json` |
+| Windows | `C:\ProgramData\EduPython3\classroom.json` |
+| Linux | `/etc/edupython3/classroom.json` |
 
 **Τρόπος Α: μαζί με την εγκατάσταση.** Ο installer αντιγράφει το αρχείο και ρυθμίζει σωστά τα δικαιώματα του φακέλου.
 Γίνεται και σιωπηλά, π.χ. από script ή GPO:
 
 ```
-Python2-EPAL-1.5.0-setup.exe /S /CLASSROOM=\\server\share\classroom.json
+EduPython3-1.0.0-setup.exe /S /CLASSROOM=\\server\share\classroom.json
 ```
 
 **Τρόπος Β: χειροκίνητα (Windows).** Σε κάθε υπολογιστή, σε PowerShell **ως διαχειριστής**:
 
 ```powershell
-$d = "$env:ProgramData\Python2-EPAL"
+$d = "$env:ProgramData\EduPython3"
 New-Item -ItemType Directory -Force $d | Out-Null
 Copy-Item E:\classroom.json "$d\classroom.json" -Force
 icacls $d /setowner *S-1-5-32-544 /T /C
@@ -136,8 +132,8 @@ portable, για τον λόγο που εξηγεί η ενότητα [Ασφά
 **Linux:**
 
 ```
-sudo mkdir -p /etc/python2-epal
-sudo cp classroom.json /etc/python2-epal/
+sudo mkdir -p /etc/edupython3
+sudo cp classroom.json /etc/edupython3/
 ```
 
 ### Περισσότεροι καθηγητές στο ίδιο εργαστήριο
@@ -222,9 +218,9 @@ sudo cp classroom.json /etc/python2-epal/
 
 | Υπολογιστής | Τι γίνεται στην αναβάθμιση |
 |---|---|
-| Καθηγητής | Το κλειδί μένει στη θέση του, άρα και το αποτύπωμα: Windows `%APPDATA%\Python 2.7 ΕΠΑΛ\classroom-teacher.json`, Linux `~/.config/Python 2.7 ΕΠΑΛ/classroom-teacher.json`. |
-| Μαθητής, Windows | Το `C:\ProgramData\Python2-EPAL\classroom.json` μένει. Ο installer δεν το σβήνει, ούτε στην αναβάθμιση ούτε στην απεγκατάσταση: βγάζει μόνο τον κανόνα του τείχους προστασίας και τον ξαναβάζει. |
-| Μαθητής, Linux | Το `/etc/python2-epal/classroom.json` δεν ανήκει στο πακέτο .deb, οπότε μένει. |
+| Καθηγητής | Το κλειδί μένει στη θέση του, άρα και το αποτύπωμα: Windows `%APPDATA%\EduPython3\classroom-teacher.json`, Linux `~/.config/EduPython3/classroom-teacher.json`. |
+| Μαθητής, Windows | Το `C:\ProgramData\EduPython3\classroom.json` μένει. Ο installer δεν το σβήνει, ούτε στην αναβάθμιση ούτε στην απεγκατάσταση: βγάζει μόνο τον κανόνα του τείχους προστασίας και τον ξαναβάζει. |
+| Μαθητής, Linux | Το `/etc/edupython3/classroom.json` δεν ανήκει στο πακέτο .deb, οπότε μένει. |
 
 **Πότε χρειάζεται νέο `classroom.json`** (νέα **Εξαγωγή** και νέο μοίρασμα):
 
@@ -245,8 +241,8 @@ sudo cp classroom.json /etc/python2-epal/
 
 1. Εγκατέστησε την εφαρμογή στον νέο υπολογιστή και άνοιξέ την μία φορά, για να φτιαχτεί ο φάκελος ρυθμίσεων.
 2. Κλείσε την εφαρμογή.
-3. Αντίγραψε το `classroom-teacher.json` στον φάκελο ρυθμίσεων: Windows `%APPDATA%\Python 2.7 ΕΠΑΛ\`,
-   Linux `~/.config/Python 2.7 ΕΠΑΛ/`. Αν υπάρχει ήδη αρχείο με το ίδιο όνομα, αντικατέστησέ το.
+3. Αντίγραψε το `classroom-teacher.json` στον φάκελο ρυθμίσεων: Windows `%APPDATA%\EduPython3\`,
+   Linux `~/.config/EduPython3/`. Αν υπάρχει ήδη αρχείο με το ίδιο όνομα, αντικατέστησέ το.
 4. Άνοιξε την εφαρμογή και ξεκίνα την τάξη. Οι μαθητές σε εμπιστεύονται όπως πριν, χωρίς νέο `classroom.json`.
 
 Για έλεγχο, το αποτύπωμα στο **ⓘ** της οθόνης καθηγητή πρέπει να είναι ίδιο με το `fingerprint` του `classroom.json`.
@@ -294,7 +290,7 @@ sudo cp classroom.json /etc/python2-epal/
 
 ```json
 {
-  "app": "python2-epal",
+  "app": "edupython3",
   "teachers": [
     {
       "name": "Λ. Προκόπης",
@@ -302,8 +298,8 @@ sudo cp classroom.json /etc/python2-epal/
       "fingerprint": "3f:a2:…:91"
     }
   ],
-  "port": 47800,
-  "discoveryPort": 47801,
+  "port": 47810,
+  "discoveryPort": 47811,
   "hosts": ["192.168.1.10"]
 }
 ```
@@ -311,8 +307,8 @@ sudo cp classroom.json /etc/python2-epal/
 | Πεδίο | Σημασία |
 |---|---|
 | `teachers` | Οι καθηγητές που εμπιστεύεται ο υπολογιστής. `fingerprint` είναι το SHA-256 του δημόσιου κλειδιού, και το βλέπεις στο ⓘ της οθόνης καθηγητή. Το `name` είναι αυτό που βλέπει ο μαθητής. |
-| `port` | Θύρα TCP του καθηγητή (προεπιλογή 47800). |
-| `discoveryPort` | Θύρα UDP για την εύρεση του καθηγητή (προεπιλογή 47801). |
+| `port` | Θύρα TCP του καθηγητή (προεπιλογή 47810). |
+| `discoveryPort` | Θύρα UDP για την εύρεση του καθηγητή (προεπιλογή 47811). |
 | `hosts` | Προαιρετικό. Διευθύνσεις IP όπου ρωτά ο μαθητής, εκτός από το broadcast. Η «Εξαγωγή» βάζει τις τρέχουσες διευθύνσεις του καθηγητή. Χρήσιμο όταν το δίκτυο κόβει το broadcast. |
 
 ## Επίλυση προβλημάτων
@@ -320,10 +316,10 @@ sudo cp classroom.json /etc/python2-epal/
 | Πρόβλημα | Τι να ελέγξεις |
 |---|---|
 | Ο μαθητής βλέπει «Αυτός ο υπολογιστής δεν έχει ρυθμιστεί ακόμα» | Λείπει το `classroom.json` από τη θέση που δείχνει το μήνυμα. |
-| Ο μαθητής μένει στο «Τάξη: αναζήτηση καθηγητή…» | Είναι ανοιχτή η τάξη στον καθηγητή (Έναρξη τάξης); Είναι στο ίδιο δίκτυο; Επιτρέπει το Τείχος προστασίας του καθηγητή τις θύρες TCP 47800 και UDP 47801; Αν το δίκτυο κόβει το broadcast, π.χ. σε διαφορετικά VLAN ή σε Wi-Fi με «client isolation», γράψε την IP του καθηγητή στο `hosts`. Έχει αλλάξει το κλειδί του καθηγητή; Τότε κάνε ξανά εξαγωγή και ξαναμοίρασε το αρχείο. |
+| Ο μαθητής μένει στο «Τάξη: αναζήτηση καθηγητή…» | Είναι ανοιχτή η τάξη στον καθηγητή (Έναρξη τάξης); Είναι στο ίδιο δίκτυο; Επιτρέπει το Τείχος προστασίας του καθηγητή τις θύρες TCP 47810 και UDP 47811; Αν το δίκτυο κόβει το broadcast, π.χ. σε διαφορετικά VLAN ή σε Wi-Fi με «client isolation», γράψε την IP του καθηγητή στο `hosts`. Έχει αλλάξει το κλειδί του καθηγητή; Τότε κάνε ξανά εξαγωγή και ξαναμοίρασε το αρχείο. |
 | «Λάθος PIN» | Το PIN αλλάζει σε κάθε «Έναρξη τάξης» και με το ↻. |
 | «Πολλές λάθος προσπάθειες» | Ο υπολογιστής μπλοκαρίστηκε για ένα λεπτό μετά από 5 λάθος PIN. |
-| «Η θύρα 47800 χρησιμοποιείται ήδη» (στον καθηγητή) | Είναι ήδη ανοιχτή η τάξη σε άλλο παράθυρο ή σε άλλον λογαριασμό του ίδιου υπολογιστή. |
+| «Η θύρα 47810 χρησιμοποιείται ήδη» (στον καθηγητή) | Είναι ήδη ανοιχτή η τάξη σε άλλο παράθυρο ή σε άλλον λογαριασμό του ίδιου υπολογιστή. |
 | Δεν εμφανίζεται ειδοποίηση των Windows για το ✋ | Έλεγξε τις ρυθμίσεις ειδοποιήσεων και την «Εστίαση». Ο ήχος και η κάρτα στην κορυφή λειτουργούν πάντα. |
 | Ο ίδιος μαθητής εμφανίζεται σε δύο κάρτες | Οι κάρτες ξεχωρίζουν με βάση τον υπολογιστή και τον λογαριασμό χρήστη. Ο ίδιος μαθητής από άλλο υπολογιστή εμφανίζεται ως νέα κάρτα. Αφαίρεσε την παλιά με ×. |
 
@@ -341,7 +337,7 @@ sudo cp classroom.json /etc/python2-epal/
 | `tests/classroom.test.js` | Tests με πραγματικό TLS server στο 127.0.0.1 |
 
 **Εύρεση.**
-- Ο μαθητής στέλνει κάθε 3 δευτερόλεπτα UDP `{"app":"python2-epal","type":"discover","v":1}`. Τον στέλνει στο
+- Ο μαθητής στέλνει κάθε 3 δευτερόλεπτα UDP `{"app":"edupython3","type":"discover","v":1}`. Τον στέλνει στο
   `255.255.255.255`, στη broadcast διεύθυνση κάθε δικτύου του και στα `hosts`, στη θύρα `discoveryPort`.
 - Ο καθηγητής απαντά unicast με `{"type":"teacher","port":…,"fp":…}`. Τα Windows δέχονται unicast απάντηση σε
   broadcast που έστειλε ο ίδιος ο υπολογιστής, οπότε **δεν χρειάζεται κανόνας firewall στους μαθητές**.
@@ -372,7 +368,7 @@ sudo cp classroom.json /etc/python2-epal/
 
 **Tests:** `npm test`, ή μόνο αυτά με `node --test tests/classroom.test.js`.
 
-**Δοκιμή με πολλά instances στον ίδιο υπολογιστή:** κάθε instance χρειάζεται δικό του `EPAL_USERDATA`, επειδή το
-single-instance lock αφορά τον φάκελο userData. Με το `EPAL_CLASSROOM=<αρχείο>` ορίζεται άλλη θέση για το `classroom.json`.
+**Δοκιμή με πολλά instances στον ίδιο υπολογιστή:** κάθε instance χρειάζεται δικό του `EDUPY_USERDATA` (ή `EPAL_USERDATA`), επειδή το
+single-instance lock αφορά τον φάκελο userData. Με το `EDUPY_CLASSROOM=<αρχείο>` (ή `EPAL_CLASSROOM`) ορίζεται άλλη θέση για το `classroom.json`.
 Ο καθηγητής ξεχωρίζει τους μαθητές με βάση τον υπολογιστή και τον λογαριασμό χρήστη, οπότε στον ίδιο υπολογιστή
 εμφανίζονται ως μία κάρτα.

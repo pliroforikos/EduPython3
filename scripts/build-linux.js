@@ -3,8 +3,8 @@
 /*
  * Πακέτα για Ubuntu, Linux Mint, Debian και παρόμοιες διανομές (64-bit):
  *
- *   dist/python2-epal_<έκδοση>_amd64.deb          εγκατάσταση:       sudo apt install ./python2-epal_<έκδοση>_amd64.deb
- *   dist/Python2-EPAL-<έκδοση>-linux-x64.tar.gz   χωρίς εγκατάσταση: αποσυμπίεση και ./python2-epal.sh
+ *   dist/edupython3_<έκδοση>_amd64.deb          εγκατάσταση:       sudo apt install ./edupython3_<έκδοση>_amd64.deb
+ *   dist/EduPython3-<έκδοση>-linux-x64.tar.gz   χωρίς εγκατάσταση: αποσυμπίεση και ./edupython3.sh
  *
  *   npm run dist:linux
  *
@@ -25,9 +25,9 @@ const DIST = path.join(ROOT, 'dist');
 const UNPACKED = path.join(DIST, 'linux-unpacked');
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8'));
 const MTIME = Math.floor(Date.now() / 1000);
-// οι εξαρτήσεις που βάζει και το ίδιο το electron-builder στα .deb (FpmTarget.getDefaultDepends)
+// οι εξαρτήσεις που βάζει και το ίδιο το electron-builder στα .deb (FpmTarget.getDefaultDepends) + python3
 const DEPENDS = ['libgtk-3-0', 'libnotify4', 'libnss3', 'libxss1', 'libxtst6', 'xdg-utils', 'libatspi2.0-0',
-  'libuuid1', 'libsecret-1-0'];
+  'libuuid1', 'libsecret-1-0', 'python3'];
 
 // ======================================================================= tar (ustar, με pax για μεγάλα ονόματα)
 function octal(n, width) {
@@ -193,7 +193,7 @@ function arMember(name, size) {
 
 async function buildDeb(info) {
   const m = info.meta;
-  const appDir = '.' + info.app.dest;                                    // ./opt/Python2-EPAL
+  const appDir = '.' + info.app.dest;                                    // ./opt/EduPython3
   const files = walk(UNPACKED, appDir).map((f) => (/\.sh$/.test(f.path) ? { ...f, data: unix(fs.readFileSync(f.src)), src: undefined } : f));
   const entries = withDirs(files.concat(info.extra), './');
 
@@ -213,6 +213,7 @@ async function buildDeb(info) {
     `Maintainer: ${m.maintainer}`,
     `Installed-Size: ${installedKb}`,
     `Depends: ${DEPENDS.join(', ')}`,
+    'Recommends: python3-tk',
     'Section: devel',
     `Priority: ${m['deb-priority'] || 'optional'}`,
     `Homepage: ${m.url || pkg.homepage}`,
@@ -251,11 +252,11 @@ async function buildDeb(info) {
 
 // ======================================================================= 3. φορητό .tar.gz
 async function buildPortable() {
-  const top = `Python2-EPAL-${pkg.version}-linux-x64`;
+  const top = `EduPython3-${pkg.version}-linux-x64`;
   // χωρίς τα αρχεία που αφορούν μόνο την εγκατάσταση με .deb
   const skip = (rel) => /\/resources\/(apparmor-profile|package-type|app-update\.yml)$/.test(rel);
   const files = walk(UNPACKED, top, skip).map((f) => (/\.sh$/.test(f.path) ? { ...f, data: unix(fs.readFileSync(f.src)), src: undefined } : f));
-  files.push({ path: `${top}/python2-epal.sh`, data: unix(fs.readFileSync(path.join(__dirname, 'linux', 'python2-epal.sh'))), mode: 0o755 });
+  files.push({ path: `${top}/edupython3.sh`, data: unix(fs.readFileSync(path.join(__dirname, 'linux', 'edupython3.sh'))), mode: 0o755 });
   files.push({ path: `${top}/ΔΙΑΒΑΣΕ-ΜΕ.txt`, data: Buffer.from(README(top), 'utf-8'), mode: 0o644 });
   const file = path.join(DIST, `${top}.tar.gz`);
   await writeTarGz(file, withDirs(files, `${top}/`));
@@ -263,22 +264,20 @@ async function buildPortable() {
 }
 
 function README(top) {
-  return `Python 2.7 ΕΠΑΛ ${pkg.version} για Linux (64-bit), χωρίς εγκατάσταση
+  return `EduPython3 ${pkg.version} για Linux (64-bit), χωρίς εγκατάσταση
 Δημιουργός: Λέων Προκόπης, καθηγητής Πληροφορικής ΠΕ86 · άδεια CC BY-NC-SA 4.0
-https://github.com/pliroforikos/myPython2
+https://github.com/pliroforikos/EduPython3
 
 Εκκίνηση
   cd ${top}
-  ./python2-epal.sh
+  ./edupython3.sh
 
-Χρειάζεται εγκατεστημένη την Python 2.7:
-  Ubuntu 22.04, Linux Mint 21:          sudo apt install python2
-  Ubuntu 24.04, Linux Mint 22, Debian 12 (και για Tkinter παντού):
-                                        sudo bash resources/install-python27.sh
-Η εφαρμογή βρίσκει μόνη της την Python 2.7· αλλιώς ορίζεται από Αρχείο → Ρυθμίσεις.
+Χρειάζεται εγκατεστημένη την Python 3 (3.10 έως 3.14):
+  Ubuntu, Linux Mint, Debian:           sudo apt install python3 python3-tk
+Η εφαρμογή βρίσκει μόνη της την Python 3· αλλιώς ορίζεται από Αρχείο → Ρυθμίσεις.
 
 Για εγκατάσταση σε όλους τους χρήστες, με εικονίδιο στο μενού εφαρμογών, προτίμησε το πακέτο .deb:
-  sudo apt install ./python2-epal_${pkg.version}_amd64.deb
+  sudo apt install ./edupython3_${pkg.version}_amd64.deb
 `;
 }
 

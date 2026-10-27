@@ -1,10 +1,10 @@
 {
-  "name": "python2-epal",
-  "productName": "Python 2.7 ΕΠΑΛ",
-  "version": "1.6.0",
-  "description": "Φιλικό περιβάλλον προγραμματισμού Python 2.7 για μαθητές ΕΠΑΛ (τύπου Thonny)",
+  "name": "edupython3",
+  "productName": "EduPython3",
+  "version": "1.0.0",
+  "description": "Φιλικό περιβάλλον προγραμματισμού Python 3 για μαθητές (τύπου Thonny)",
   "main": "src/main/main.js",
-  "desktopName": "python2-epal.desktop",
+  "desktopName": "edupython3.desktop",
   "author": "Λέων Προκόπης, καθηγητής Πληροφορικής ΠΕ86",
   "license": "CC-BY-NC-SA-4.0",
   "scripts": {
@@ -15,8 +15,8 @@
     "dist:linux": "node scripts/build-linux.js"
   },
   "build": {
-    "appId": "gr.epal.python2",
-    "productName": "Python2-EPAL",
+    "appId": "gr.edu.python3",
+    "productName": "EduPython3",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -35,7 +35,7 @@
     "fileAssociations": [
       {
         "ext": "py",
-        "name": "Python 2 πρόγραμμα",
+        "name": "Πρόγραμμα Python",
         "role": "Editor",
         "mimeType": "text/x-python"
       }
@@ -48,14 +48,14 @@
       "icon": "build/icon.ico"
     },
     "portable": {
-      "artifactName": "Python2-EPAL-${version}-portable.exe"
+      "artifactName": "EduPython3-${version}-portable.exe"
     },
     "nsis": {
-      "artifactName": "Python2-EPAL-${version}-setup.exe",
+      "artifactName": "EduPython3-${version}-setup.exe",
       "oneClick": false,
       "perMachine": true,
       "allowToChangeInstallationDirectory": true,
-      "shortcutName": "Python 2.7 ΕΠΑΛ"
+      "shortcutName": "EduPython3"
     },
     "linux": {
       "target": [
@@ -63,20 +63,14 @@
       ],
       "category": "Development",
       "icon": "build/icon.png",
-      "executableName": "python2-epal",
+      "executableName": "edupython3",
       "maintainer": "Λέων Προκόπης <37191269+pliroforikos@users.noreply.github.com>",
-      "synopsis": "Περιβάλλον προγραμματισμού Python 2.7 για μαθητές ΕΠΑΛ",
-      "description": "Φιλικό περιβάλλον προγραμματισμού Python 2.7 τύπου Thonny για τους μαθητές του Τομέα Πληροφορικής των ΕΠΑΛ.",
-      "syncDesktopName": true,
-      "extraResources": [
-        {
-          "from": "scripts/linux/install-python27.sh",
-          "to": "install-python27.sh"
-        }
-      ]
+      "synopsis": "Περιβάλλον προγραμματισμού Python 3 για μαθητές",
+      "description": "Φιλικό περιβάλλον προγραμματισμού Python 3 τύπου Thonny για μαθητές Γυμνασίου, Λυκείου, ΕΠΑΛ και αυτοδίδακτους.",
+      "syncDesktopName": true
     },
     "deb": {
-      "artifactName": "python2-epal_${version}_amd64.deb"
+      "artifactName": "edupython3_${version}_amd64.deb"
     }
   },
   "dependencies": {
@@ -88,7 +82,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/pliroforikos/myPython2.git"
+    "url": "https://github.com/pliroforikos/EduPython3.git"
   },
-  "homepage": "https://github.com/pliroforikos/myPython2"
+  "homepage": "https://github.com/pliroforikos/EduPython3"
 }

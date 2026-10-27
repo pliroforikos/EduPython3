@@ -49,7 +49,7 @@ function fingerprint(publicKey) {
 }
 
 /** Νέα ταυτότητα: { keyPem, certPem, fingerprint }. */
-function generateIdentity(cn = 'Python2-EPAL teacher') {
+function generateIdentity(cn = 'EduPython3 teacher') {
   const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', { namedCurve: 'P-256' });
   const serial = crypto.randomBytes(16);
   serial[0] &= 0x7f;   // θετικός ακέραιος

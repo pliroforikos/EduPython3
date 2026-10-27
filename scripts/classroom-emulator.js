@@ -24,7 +24,7 @@ if (!/^\d{4}$/.test(pin || '')) {
 }
 
 const appData = process.platform === 'win32' ? process.env.APPDATA : path.join(os.homedir(), '.config');
-const teacherFile = process.env.EPAL_TEACHER || path.join(appData, 'Python 2.7 ΕΠΑΛ', 'classroom-teacher.json');
+const teacherFile = process.env.EDUPY_TEACHER || process.env.EPAL_TEACHER || path.join(appData, 'EduPython3', 'classroom-teacher.json');
 const id = JSON.parse(fs.readFileSync(teacherFile, 'utf-8'));
 const trust = {
   ok: true,

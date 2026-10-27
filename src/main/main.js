@@ -63,7 +63,7 @@ function saveSettings() {
 }
 
 function workDir() {
-  const dir = path.join(app.getPath('documents'), 'Python2');
+  const dir = path.join(app.getPath('documents'), 'EduPython3');
   try { fs.mkdirSync(dir, { recursive: true }); } catch (_) { /* υπάρχει */ }
   return dir;
 }
@@ -92,7 +92,7 @@ function listExamples() {
   });
 }
 
-/** Αντιγράφει το παράδειγμα στον φάκελο Έγγραφα\Python2\Παραδείγματα (για να μη χαλάσει το πρωτότυπο). */
+/** Αντιγράφει το παράδειγμα στον φάκελο Έγγραφα\EduPython3\Παραδείγματα (για να μη χαλάσει το πρωτότυπο). */
 function copyExample(src) {
   const dir = path.join(workDir(), 'Παραδείγματα');
   fs.mkdirSync(dir, { recursive: true });
@@ -384,7 +384,7 @@ function openTeacherWindow() {
     height: 820,
     minWidth: 700,
     minHeight: 480,
-    title: 'Τάξη – Python 2.7 ΕΠΑΛ',
+    title: 'Τάξη – EduPython3',
     backgroundColor: settings.theme === 'dark' ? '#1e1f22' : '#ffffff',
     icon: path.join(__dirname, '..', 'renderer', 'icon.png'),
     autoHideMenuBar: true,
@@ -488,7 +488,7 @@ function createWindow() {
     y: w.y,
     minWidth: 760,
     minHeight: 480,
-    title: 'Python 2.7 ΕΠΑΛ',
+    title: 'EduPython3',
     backgroundColor: settings.theme === 'dark' ? '#1e1f22' : '#ffffff',
     icon: path.join(__dirname, '..', 'renderer', 'icon.png'),
     show: false,
@@ -572,7 +572,7 @@ if (!gotLock) {
 
   app.whenReady().then(() => {
     // ειδοποιήσεις «χέρι σηκωμένο»· στο dev άλλο ID, αλλιώς τα Windows ταυτίζουν το node_modules\electron.exe με την εγκατεστημένη εφαρμογή
-    if (process.platform === 'win32') app.setAppUserModelId(app.isPackaged ? 'gr.epal.python2' : 'gr.epal.python2.dev');
+    if (process.platform === 'win32') app.setAppUserModelId(app.isPackaged ? 'gr.edu.python3' : 'gr.edu.python3.dev');
     loadSettings();
     refreshMenu();
     createWindow();
