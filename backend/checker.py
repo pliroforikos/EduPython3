@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
-"""Ζωντανός έλεγχος σύνταξης (Python 2.7).
+"""Ζωντανός έλεγχος σύνταξης (Python 3).
 
 Διαβάζει {"id", "source", "encoding"} ανά γραμμή και απαντά
-{"id", "ok"} ή {"id", "ok": false, "exc_type", "message", "lineno", "col"}.
+{"id", "ok"} ή {"id", "ok": false, "exc_type", "message", "lineno", "col", "end_col", "line"}.
 """
 import os
 import sys
@@ -12,26 +11,24 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _epal_util as U  # noqa: E402
 
 
-def check(source, default_enc):
-    enc, _ = U.choose_encoding(source, default_enc)
+def check(source, default_enc='utf-8'):
     try:
-        U.compile_source(source, '<editor>', enc)
-    except UnicodeEncodeError as e:
-        lineno, col, ch = U.encode_error_info(e, source)
-        return {'ok': False, 'exc_type': 'UnicodeEncodeError', 'lineno': lineno, 'col': col,
-                'char': ch, 'encoding': enc,
-                'message': u"ο χαρακτήρας '%s' δεν υπάρχει στην κωδικοποίηση %s" % (ch, enc)}
+        U.compile_source(source, '<editor>', 'exec')
     except SyntaxError as e:
-        lineno, col, line = U.syntax_error_info(e, source, enc)
+        lineno, col, end_col, line = U.syntax_error_info(e, source)
         return {'ok': False, 'exc_type': type(e).__name__, 'lineno': lineno, 'col': col,
-                'line': line, 'message': U.to_u(e.msg, enc)}
+                'end_col': end_col, 'line': line, 'message': str(e.msg)}
     except (TypeError, ValueError, OverflowError) as e:
         return {'ok': False, 'exc_type': type(e).__name__, 'lineno': 1, 'col': None,
-                'message': U.to_u(str(e), enc)}
+                'message': str(e)}
     return {'ok': True}
 
 
 def main():
+    if hasattr(sys.stdin, 'reconfigure'):
+        sys.stdin.reconfigure(encoding='utf-8')
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
     out = sys.stdout
     while True:
         line = sys.stdin.readline()
@@ -41,9 +38,9 @@ def main():
             msg = json.loads(line)
         except ValueError:
             continue
-        result = check(msg.get('source', u''), msg.get('encoding') or 'cp1253')
+        result = check(msg.get('source', ''), msg.get('encoding') or 'utf-8')
         result['id'] = msg.get('id')
-        out.write(json.dumps(result) + '\n')
+        out.write(json.dumps(result, ensure_ascii=False) + '\n')
         out.flush()
 
 

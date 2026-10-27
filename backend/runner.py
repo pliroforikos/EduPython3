@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
-"""Backend εκτέλεσης προγραμμάτων Python 2.7 (μοντέλο Thonny).
+"""Backend εκτέλεσης προγραμμάτων Python 3 (μοντέλο Thonny).
 
 Πρωτόκολλο: μία εντολή JSON ανά γραμμή στο stdin, ένα μήνυμα JSON ανά γραμμή
 στο stdout. Το πρόγραμμα του μαθητή βλέπει δικά μας sys.stdin/stdout/stderr.
 
 Εντολές:   {"cmd":"run", "path", "source", "encoding"}
            {"cmd":"shell", "cwd", "encoding"}
-           {"cmd":"input", "text"}      απάντηση σε raw_input/input
+           {"cmd":"input", "text"}      απάντηση σε input()
            {"cmd":"repl", "line"}       γραμμή του Shell (>>>)
            {"cmd":"globals"}
            {"cmd":"trace", "mode", "delay"}  εκτέλεση βήμα-βήμα: mode step | auto | off
@@ -21,12 +20,11 @@ import traceback
 import linecache
 import codeop
 import types
-import imp
 import inspect
 import re
 import time
-import Queue
-import __builtin__
+import queue
+import builtins
 
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BACKEND_DIR)
@@ -35,15 +33,15 @@ sys.path[:] = [p for p in sys.path if os.path.normcase(os.path.abspath(p or '.')
                os.path.normcase(BACKEND_DIR)]
 
 OWN_FILES = set(os.path.normcase(os.path.join(BACKEND_DIR, f))
-                for f in ('runner.py', 'runner.pyc', '_epal_util.py', '_epal_util.pyc'))
+                for f in ('runner.py', '_epal_util.py'))
 SHELL_FILE = '<shell>'
 MAX_REPR = 1500
 STAR_RE = re.compile(r'^[ \t]*from[ \t]+([\w.]+)[ \t]+import[ \t]*\*', re.M)
 
 # --- Ιδιωτικά κανάλια πρωτοκόλλου -------------------------------------------
-# Κρατάμε αντίγραφα των fd 0/1 για το πρωτόκολλο. Το fd 0 δείχνει πλέον στο NUL
-# και το fd 1 στο stderr, ώστε έξοδος από C κώδικα ή υποδιεργασίες (os.system)
-# να μη χαλάει το πρωτόκολλο.
+# Κρατάμε αντίγραφα των fd 0/1 για το πρωτόκολλο (σε binary). Το fd 0 δείχνει
+# πλέον στο devnull και το fd 1 στο stderr, ώστε έξοδος από C κώδικα ή
+# υποδιεργασίες (os.system) να μη χαλάει το JSON πρωτόκολλο.
 _proto_in = os.fdopen(os.dup(0), 'rb')
 _proto_out = os.fdopen(os.dup(1), 'wb', 0)
 try:
@@ -57,18 +55,17 @@ _write_lock = threading.Lock()
 
 
 def _raw_send(msg):
-    data = json.dumps(msg) + '\n'
+    data = (json.dumps(msg, ensure_ascii=False) + '\n').encode('utf-8')
     with _write_lock:
         _proto_out.write(data)
 
 
-class _State(object):
-    encoding = 'cp1253'
-    default_encoding = 'cp1253'
-    prog_path_u = None      # unicode διαδρομή προγράμματος
-    prog_path_b = None      # bytes διαδρομή (όπως τη βλέπει η Python 2)
+class _State:
+    encoding = 'utf-8'
+    default_encoding = 'utf-8'
+    prog_path = None        # διαδρομή προγράμματος (str)
     last_input = None
-    sources = {}            # όνομα αρχείου (bytes) -> λίστα unicode γραμμών
+    sources = {}            # όνομα αρχείου (str) -> λίστα str γραμμών
     star_modules = set()    # modules από `from X import *`
 
 
@@ -76,11 +73,9 @@ S = _State()
 
 
 # --- Έξοδος -----------------------------------------------------------------
-class _OutputBuffer(object):
+class _OutputBuffer:
     """Συγκεντρώνει την έξοδο και τη στέλνει ανά ~30ms ή όταν χρειάζεται."""
 
-    # Ρυθμός εξόδου προς το IDE: έως RATE χαρακτήρες/δευτερόλεπτο, με «απόθεμα» BURST για
-    # σύντομες εκρήξεις. Ένα ατέρμονο print έστελνε ~8 MB/s και η εφαρμογή «κολλούσε».
     RATE = 200000.0
     BURST = 200000.0
 
@@ -102,13 +97,12 @@ class _OutputBuffer(object):
             big = self.size > 32768
             now = time.time()
             self.budget = min(self.BURST, self.budget + (now - self.last) * self.RATE) - len(text)
-            self.budget = max(self.budget, -self.RATE)    # το πολύ 1 δευτερόλεπτο «χρέος»
+            self.budget = max(self.budget, -self.RATE)
             self.last = now
             delay = -self.budget / self.RATE if self.budget < 0 else 0
         if big:
             self.flush()
         if delay:
-            # το πρόγραμμα του μαθητή περιμένει λίγο (μόνο όταν τυπώνει υπερβολικά πολλά)
             time.sleep(min(delay, 1.0))
 
     def flush(self):
@@ -116,7 +110,7 @@ class _OutputBuffer(object):
             with self.lock:
                 items, self.items, self.size = self.items, [], 0
             for stream, parts in items:
-                _raw_send({'type': 'out', 'stream': stream, 'text': u''.join(parts)})
+                _raw_send({'type': 'out', 'stream': stream, 'text': ''.join(parts)})
 
 
 OUTPUT = _OutputBuffer()
@@ -136,26 +130,22 @@ def _flusher():
             pass
 
 
-class OutStream(object):
+class OutStream:
     def __init__(self, name):
         self.name = name
-        self.softspace = 0
         self.closed = False
         self.mode = 'w'
 
     @property
     def encoding(self):
-        return S.encoding
+        return 'utf-8'
 
     def write(self, data):
-        if isinstance(data, unicode):
-            text = data
-        else:
-            if not isinstance(data, str):
-                data = str(data)
-            text = data.decode(S.encoding, 'replace')
-        if text:
-            OUTPUT.add(self.name, text)
+        if not isinstance(data, str):
+            data = str(data)
+        if data:
+            OUTPUT.add(self.name, data)
+        return len(data)
 
     def writelines(self, lines):
         for line in lines:
@@ -172,7 +162,7 @@ class OutStream(object):
 
 
 # --- Είσοδος ----------------------------------------------------------------
-_cmd_queue = Queue.Queue()
+_cmd_queue = queue.Queue()
 
 
 def _reader():
@@ -184,10 +174,9 @@ def _reader():
         if not line:
             continue
         try:
-            msg = json.loads(line)
+            msg = json.loads(line.decode('utf-8', 'replace'))
         except ValueError:
             continue
-        # οι εντολές του βήμα-βήμα ισχύουν αμέσως, ακόμα και όσο το πρόγραμμα περιμένει
         if msg.get('cmd') in ('trace', 'step'):
             TRACE.command(msg)
         else:
@@ -195,7 +184,7 @@ def _reader():
 
 
 def _pump_tk():
-    tk = sys.modules.get('Tkinter')
+    tk = sys.modules.get('tkinter')
     root = getattr(tk, '_default_root', None) if tk else None
     if root is not None:
         try:
@@ -210,30 +199,29 @@ def wait_cmd(accept):
     while True:
         try:
             msg = _cmd_queue.get(True, 0.05)
-        except Queue.Empty:
+        except queue.Empty:
             _pump_tk()
             continue
         if msg.get('cmd') in accept:
             return msg
 
 
-class InStream(object):
+class InStream:
     closed = False
     mode = 'r'
-    softspace = 0
 
     @property
     def encoding(self):
-        return S.encoding
+        return 'utf-8'
 
     def readline(self, size=-1):
         send({'type': 'input_request'})
         msg = wait_cmd(('input',))
-        text = msg.get('text', u'')
-        if not text.endswith(u'\n'):
-            text += u'\n'
-        S.last_input = text.rstrip(u'\n')
-        return text.encode(S.encoding, 'replace')
+        text = msg.get('text', '')
+        if not text.endswith('\n'):
+            text += '\n'
+        S.last_input = text.rstrip('\n')
+        return text
 
     read = readline
 
@@ -243,7 +231,7 @@ class InStream(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         line = self.readline()
         if not line:
             raise StopIteration
@@ -256,53 +244,29 @@ class InStream(object):
         return 0
 
 
-# --- Import αρχείων του μαθητή ----------------------------------------------
-class StudentImporter(object):
-    """Φορτώνει modules από τον φάκελο του προγράμματος με τους ίδιους κανόνες
-    κωδικοποίησης (χωρίς να απαιτείται δήλωση coding)."""
-
-    def __init__(self, folder_u):
-        self.folder = folder_u
-        self.found = {}
-
-    def find_module(self, fullname, path=None):
-        if path is not None or '.' in fullname or not self.folder:
-            return None
-        fp = os.path.join(self.folder, fullname.decode('ascii', 'replace') + u'.py')
-        if os.path.isfile(fp):
-            self.found[fullname] = fp
-            return self
-        return None
-
-    def load_module(self, fullname):
-        if fullname in sys.modules:
-            return sys.modules[fullname]
-        fp_u = self.found[fullname]
-        fp_b = U.fs_encode(fp_u)
-        with open(fp_u, 'rb') as f:
-            text = U.decode_file_bytes(f.read())
-        enc, _ = U.choose_encoding(text, S.default_encoding)
-        register_source(fp_b, text)
-        code = U.compile_source(text, fp_b, enc)
-        mod = imp.new_module(fullname)
-        mod.__file__ = fp_b
-        mod.__loader__ = self
-        sys.modules[fullname] = mod
-        try:
-            exec code in mod.__dict__
-        except BaseException:
-            sys.modules.pop(fullname, None)
-            raise
-        return mod
+def _edu_input(prompt=''):
+    """Αντικατάσταση της builtins.input ώστε να στέλνει input_request στο IDE."""
+    if prompt:
+        sys.stdout.write(str(prompt))
+        sys.stdout.flush()
+    send({'type': 'input_request'})
+    msg = wait_cmd(('input',))
+    text = msg.get('text', '')
+    if text.endswith('\n'):
+        text = text[:-1]
+    S.last_input = text
+    return text
 
 
-def register_source(filename_b, text):
+def register_source(filename, text):
+    if not filename or not text:
+        return
     for m in STAR_RE.finditer(text):
-        S.star_modules.add(m.group(1).encode('ascii', 'replace'))
-    lines = U.normalize_source(text).split(u'\n')
-    S.sources[filename_b] = lines
-    linecache.cache[filename_b] = (
-        len(text), None, [l.encode('utf-8') + '\n' for l in lines], filename_b)
+        S.star_modules.add(m.group(1))
+    lines = U.normalize_source(text).split('\n')
+    S.sources[filename] = lines
+    linecache.cache[filename] = (
+        len(text), None, [l + '\n' for l in lines], filename)
 
 
 # --- Αναφορά λαθών ----------------------------------------------------------
@@ -313,7 +277,7 @@ def _line_for(filename, lineno):
             return lines[lineno - 1]
         return None
     line = linecache.getline(filename, lineno)
-    return U.to_u(line).rstrip(u'\r\n') if line else None
+    return line.rstrip('\r\n') if line else None
 
 
 def _is_own(filename):
@@ -324,53 +288,27 @@ def _is_own(filename):
 
 
 def _display_name(filename):
-    if filename == S.prog_path_b and S.prog_path_u:
-        return S.prog_path_u
-    return U.fs_decode(filename)
+    if filename == S.prog_path and S.prog_path:
+        return S.prog_path
+    return filename
 
 
 def _exc_type_name(etype):
     name = getattr(etype, '__name__', str(etype))
     mod = getattr(etype, '__module__', None)
-    if mod and mod not in ('exceptions', '__main__', '__builtin__'):
-        return '%s.%s' % (mod, name)
+    if mod and mod not in ('builtins', '__main__'):
+        return f'{mod}.{name}'
     return name
-
-
-_HEX_RUN_RE = re.compile(r'(?:\\x[0-9a-fA-F]{2})+')
-
-
-def _unescape_hex(text):
-    """'\\xf0\\xdd' μέσα σε μηνύματα λάθους -> πραγματικοί (ελληνικοί) χαρακτήρες."""
-    def repl(m):
-        raw = m.group(0).replace('\\x', '').decode('hex')
-        return raw.decode(S.encoding, 'replace').encode('utf-8')
-    return _HEX_RUN_RE.sub(repl, text).decode('utf-8', 'replace')
 
 
 def _exc_message(value):
     if isinstance(value, SyntaxError):
-        return U.to_u(value.msg, S.encoding)
-    try:
-        s = str(value)
-        if '\\x' in s:
-            try:
-                s.decode('ascii')
-                return _unescape_hex(s)
-            except UnicodeError:
-                pass
-        return s.decode(S.encoding, 'replace')
-    except UnicodeError:
-        try:
-            return unicode(value)
-        except Exception:
-            return u'<μη εκτυπώσιμο μήνυμα>'
-    except Exception:
-        return u'<μη εκτυπώσιμο μήνυμα>'
+        return str(value.msg or '')
+    return str(value)
 
 
 def _visible_names(tb):
-    names = set(dir(__builtin__))
+    names = set(dir(builtins))
     while tb is not None and tb.tb_next is not None:
         tb = tb.tb_next
     if tb is not None:
@@ -387,20 +325,20 @@ def report_exception(phase, source_text=None):
         if _is_own(fn) or fn in ('codeop.py',) or fn.endswith(('codeop.py', 'codeop.pyc')):
             continue
         frames.append({'filename': _display_name(fn), 'lineno': ln,
-                       'name': U.to_u(name), 'line': _line_for(fn, ln),
-                       'user': fn == S.prog_path_b or fn == SHELL_FILE})
+                       'name': name, 'line': _line_for(fn, ln),
+                       'user': fn == S.prog_path or fn == SHELL_FILE})
 
     msg = _exc_message(value)
     type_name = _exc_type_name(etype)
     out = {'type': 'error', 'phase': phase, 'exc_type': type_name, 'message': msg,
-           'frames': frames, 'cwd': os.getcwdu(), 'encoding': S.encoding,
+           'frames': frames, 'cwd': os.getcwd(), 'encoding': S.encoding,
            'last_input': S.last_input, 'location': None}
 
-    lines = [u'Traceback (most recent call last):'] if frames else []
+    lines = ['Traceback (most recent call last):'] if frames else []
     for fr in frames:
-        lines.append(u'  File "%s", line %s, in %s' % (fr['filename'], fr['lineno'], fr['name']))
+        lines.append(f'  File "{fr["filename"]}", line {fr["lineno"]}, in {fr["name"]}')
         if fr['line']:
-            lines.append(u'    ' + fr['line'].strip())
+            lines.append('    ' + fr['line'].strip())
 
     user = [f for f in frames if f['user']]
     if user:
@@ -409,92 +347,80 @@ def report_exception(phase, source_text=None):
                            'line': f['line']}
     if isinstance(value, SyntaxError):
         fn = value.filename or ''
-        text = source_text if fn in (S.prog_path_b, SHELL_FILE) else None
+        text = source_text if fn in (S.prog_path, SHELL_FILE) else None
         if text is None and fn in S.sources:
-            text = u'\n'.join(S.sources[fn])
-        lineno, col, line_u = U.syntax_error_info(value, text, S.encoding)
-        if fn in S.sources or fn == S.prog_path_b or not user:
+            text = '\n'.join(S.sources[fn])
+        lineno, col, end_col, line_str = U.syntax_error_info(value, text)
+        if fn in S.sources or fn == S.prog_path or not user:
             out['location'] = {'filename': _display_name(fn), 'lineno': lineno, 'col': col,
-                               'line': line_u}
-        lines.append(u'  File "%s", line %s' % (_display_name(fn), lineno))
-        if line_u is not None:
-            stripped = line_u.lstrip()
-            lines.append(u'    ' + stripped)
+                               'end_col': end_col, 'line': line_str}
+        lines.append(f'  File "{_display_name(fn)}", line {lineno}')
+        if line_str is not None:
+            stripped = line_str.lstrip()
+            lines.append('    ' + stripped)
             if col is not None:
-                caret = max(0, col - (len(line_u) - len(stripped)))
-                lines.append(u'    ' + u' ' * caret + u'^')
-    lines.append(u'%s: %s' % (type_name, msg) if msg else type_name)
-    out['traceback'] = u'\n'.join(lines)
+                caret = max(0, col - (len(line_str) - len(stripped)))
+                if end_col is not None and getattr(value, 'end_lineno', lineno) == lineno and end_col > col:
+                    width = max(1, end_col - col)
+                    lines.append('    ' + ' ' * caret + '^' * width)
+                else:
+                    lines.append('    ' + ' ' * caret + '^')
+    lines.append(f'{type_name}: {msg}' if msg else type_name)
+    out['traceback'] = '\n'.join(lines)
 
     if etype is NameError or type_name == 'UnboundLocalError':
         out['names'] = _visible_names(tb)
-    # NameError/SyntaxError μέσα από την input(): ο μαθητής έδωσε κείμενο στην input()
-    if isinstance(value, SyntaxError) and value.filename == '<string>':
-        caller = frames[-1] if frames else None
-    elif len(frames) >= 2 and frames[-1]['filename'] == u'<string>':
-        caller = frames[-2]
-    else:
-        caller = None
-    out['from_input'] = bool(caller and u'input' in (caller['line'] or u''))
     del tb
     send(out)
-
-
-def report_encode_error(err, text, filename_u):
-    lineno, col, ch = U.encode_error_info(err, text)
-    line = U.normalize_source(text).split(u'\n')[lineno - 1]
-    msg = (u"ο χαρακτήρας '%s' δεν υπάρχει στην κωδικοποίηση %s" % (ch, S.encoding))
-    send({'type': 'error', 'phase': 'compile', 'exc_type': 'UnicodeEncodeError',
-          'message': msg, 'frames': [], 'cwd': os.getcwdu(), 'encoding': S.encoding,
-          'last_input': None, 'from_input': False, 'char': ch,
-          'location': {'filename': filename_u, 'lineno': lineno, 'col': col, 'line': line},
-          'traceback': u'  File "%s", line %d\n    %s\nUnicodeEncodeError: %s'
-                       % (filename_u, lineno, line.strip(), msg)})
 
 
 # --- Μεταβλητές -------------------------------------------------------------
 def friendly_repr(v, depth=0):
     """repr όπου τα ελληνικά φαίνονται ως ελληνικά (μόνο για το πάνελ μεταβλητών)."""
     t = type(v)
-    if t is str or t is unicode:
-        s = v.decode(S.encoding, 'replace') if t is str else v
-        s = (s.replace(u'\\', u'\\\\').replace(u"'", u"\\'").replace(u'\n', u'\\n')
-             .replace(u'\r', u'\\r').replace(u'\t', u'\\t'))
+    if t is str:
+        s = (v.replace('\\', '\\\\').replace("'", "\\'").replace('\n', '\\n')
+             .replace('\r', '\\r').replace('\t', '\\t'))
         if len(s) > MAX_REPR:
-            s = s[:MAX_REPR] + u'…'
-        return (u"u'" if t is unicode else u"'") + s + u"'"
+            s = s[:MAX_REPR] + '…'
+        return "'" + s + "'"
+    if t is bytes:
+        r = repr(v)
+        if len(r) > MAX_REPR:
+            r = r[:MAX_REPR] + '…'
+        return r
     if depth > 3:
-        return u'…'
+        return '…'
     if t in (list, tuple, set, frozenset):
         items = []
         for i, x in enumerate(v):
             if i >= 100:
-                items.append(u'…')
+                items.append('…')
                 break
             items.append(friendly_repr(x, depth + 1))
-        body = u', '.join(items)
+        body = ', '.join(items)
         if t is list:
-            return u'[' + body + u']'
+            return '[' + body + ']'
         if t is tuple:
-            return u'(' + body + (u',)' if len(v) == 1 else u')')
-        return u'%s([%s])' % (t.__name__, body)
+            return '(' + body + (',)' if len(v) == 1 else ')')
+        return f'{t.__name__}([{body}])'
     if t is dict:
         items = []
         for i, (k, x) in enumerate(v.items()):
             if i >= 100:
-                items.append(u'…')
+                items.append('…')
                 break
-            items.append(friendly_repr(k, depth + 1) + u': ' + friendly_repr(x, depth + 1))
-        return u'{' + u', '.join(items) + u'}'
+            items.append(friendly_repr(k, depth + 1) + ': ' + friendly_repr(x, depth + 1))
+        return '{' + ', '.join(items) + '}'
     try:
         r = repr(v)
     except Exception:
-        return u'<σφάλμα στο repr>'
-    return U.to_u(r, S.encoding)
+        return '<σφάλμα στο repr>'
+    return r
 
 
 def _imported_names(ns):
-    """Ονόματα που ήρθαν από `from X import *` (π.χ. Tkinter) και δεν θέλουμε στο πάνελ."""
+    """Ονόματα που ήρθαν από `from X import *` (π.χ. tkinter) και δεν θέλουμε στο πάνελ."""
     hidden = set()
     mods = [sys.modules[n] for n in S.star_modules if sys.modules.get(n) is not None]
     if not mods:
@@ -509,26 +435,14 @@ def _imported_names(ns):
 
 
 def function_signature(name, func):
-    """Η «υπογραφή» μιας συνάρτησης, π.χ. dequeue(queue) ή f(a, b=1, *args).
-    Αντί για <function dequeue at 0x02D82370>, που δεν λέει κάτι στον μαθητή."""
+    """Η «υπογραφή» μιας συνάρτησης, π.χ. dequeue(queue) ή f(a, b=1, *args)."""
     if isinstance(func, types.FunctionType):
         try:
-            args, varargs, keywords, defaults = inspect.getargspec(func)
-        except TypeError:
-            return u'%s(…)' % U.to_u(name)
-        parts = []
-        first_default = len(args) - len(defaults or ())
-        for i, a in enumerate(args):
-            a = U.to_u(a) if isinstance(a, basestring) else u'(…)'
-            if i >= first_default:
-                a += u'=' + friendly_repr(defaults[i - first_default], 1)
-            parts.append(a)
-        if varargs:
-            parts.append(u'*' + U.to_u(varargs))
-        if keywords:
-            parts.append(u'**' + U.to_u(keywords))
-        return u'%s(%s)' % (U.to_u(name), u', '.join(parts))
-    return u'%s(…)' % U.to_u(name)
+            sig = inspect.signature(func)
+            return f'{name}{sig}'
+        except (ValueError, TypeError):
+            return f'{name}(…)'
+    return f'{name}(…)'
 
 
 def describe_globals(ns):
@@ -541,21 +455,23 @@ def describe_globals(ns):
         if isinstance(v, types.ModuleType):
             continue
         if isinstance(v, (types.FunctionType, types.BuiltinFunctionType)):
-            # για lambda το όνομα της μεταβλητής, αλλιώς το όνομα του def
             fname = name if v.__name__ == '<lambda>' else v.__name__
-            item = {'name': U.to_u(name), 'type': type(v).__name__, 'kind': 'function',
+            item = {'name': name, 'type': type(v).__name__, 'kind': 'function',
                     'repr': function_signature(fname, v)}
-            code = getattr(v, 'func_code', None)
-            if code is not None and code.co_filename == S.prog_path_b:
+            code = getattr(v, '__code__', None)
+            if code is not None and code.co_filename == S.prog_path:
                 item['line'] = code.co_firstlineno
             doc = getattr(v, '__doc__', None)
             if doc and isinstance(v, types.FunctionType):
-                item['doc'] = U.to_u(doc.strip().split('\n')[0], S.encoding)[:300]
+                item['doc'] = doc.strip().split('\n')[0][:300]
             out.append(item)
             continue
-        item = {'name': U.to_u(name), 'type': type(v).__name__, 'repr': friendly_repr(v)}
-        if isinstance(v, (str, unicode, list, tuple, dict, set, frozenset)):
-            item['len'] = len(v)
+        item = {'name': name, 'type': type(v).__name__, 'repr': friendly_repr(v)}
+        if isinstance(v, (str, bytes, list, tuple, dict, set, frozenset, range)):
+            try:
+                item['len'] = len(v)
+            except TypeError:
+                pass
         out.append(item)
     return out
 
@@ -568,7 +484,7 @@ def send_globals(ns):
 
 
 # --- Εκτέλεση βήμα-βήμα ----------------------------------------------------
-class _Trace(object):
+class _Trace:
     """Η εκτέλεση βήμα-βήμα. Οι ρυθμίσεις αλλάζουν από το νήμα _reader ενώ τρέχει
     το πρόγραμμα (π.χ. ο μαθητής περνά από «Αργή» σε «Γραμμή γραμμή»)."""
 
@@ -614,7 +530,7 @@ def _send_step(frame):
     g = frame.f_globals
     msg = {'type': 'step', 'line': frame.f_lineno, 'vars': describe_globals(g)}
     if frame.f_code.co_name != '<module>' and frame.f_locals is not g:
-        msg['func'] = U.to_u(frame.f_code.co_name)
+        msg['func'] = frame.f_code.co_name
         msg['locals'] = describe_globals(frame.f_locals)
     send(msg)
 
@@ -631,68 +547,65 @@ def _local_trace(frame, event, arg):
 
 def _global_trace(frame, event, arg):
     # μόνο οι γραμμές του προγράμματος του μαθητή, όχι οι βιβλιοθήκες
-    if event == 'call' and frame.f_code.co_filename == S.prog_path_b:
+    if event == 'call' and frame.f_code.co_filename == S.prog_path:
         return _local_trace
     return None
 
 
 # --- Εκτέλεση ---------------------------------------------------------------
-def make_namespace(path_b):
-    ns = {'__name__': '__main__', '__builtins__': __builtin__, '__doc__': None}
-    if path_b:
-        ns['__file__'] = path_b
-    main_mod = imp.new_module('__main__')
+def make_namespace(path_str):
+    ns = {'__name__': '__main__', '__builtins__': builtins, '__doc__': None}
+    if path_str:
+        ns['__file__'] = path_str
+    main_mod = types.ModuleType('__main__')
     main_mod.__dict__.update(ns)
     sys.modules['__main__'] = main_mod
     return main_mod.__dict__
 
 
-def setup_folder(folder_u):
-    if folder_u and os.path.isdir(folder_u):
-        os.chdir(folder_u)
-        sys.path.insert(0, U.fs_encode(folder_u))
-        sys.meta_path.insert(0, StudentImporter(folder_u))
+def setup_folder(folder):
+    if folder and os.path.isdir(folder):
+        os.chdir(folder)
+        norm = os.path.normcase(os.path.abspath(folder))
+        if not any(os.path.normcase(os.path.abspath(p or '.')) == norm for p in sys.path):
+            sys.path.insert(0, folder)
 
 
 def run_program(msg):
-    path_u = msg.get('path') or u'<χωρίς όνομα>'
-    text = msg.get('source', u'')
-    S.default_encoding = msg.get('encoding') or 'cp1253'
-    enc, reason = U.choose_encoding(text, S.default_encoding)
-    S.encoding = enc
-    S.prog_path_u = path_u
-    S.prog_path_b = U.fs_encode(path_u)
-    folder = msg.get('cwd') or (os.path.dirname(path_u) if msg.get('path') else None)
+    path_str = msg.get('path') or '<χωρίς όνομα>'
+    text = msg.get('source', '')
+    S.default_encoding = 'utf-8'
+    S.encoding = 'utf-8'
+    S.prog_path = path_str
+    folder = msg.get('cwd') or (os.path.dirname(path_str) if msg.get('path') else None)
     setup_folder(folder)
-    sys.argv = [S.prog_path_b]
-    ns = make_namespace(S.prog_path_b)
-    register_source(S.prog_path_b, text)
-    send({'type': 'started', 'encoding': enc, 'reason': reason, 'cwd': os.getcwdu()})
+    sys.argv = [S.prog_path]
+    ns = make_namespace(S.prog_path)
+    register_source(S.prog_path, text)
+    send({'type': 'started', 'encoding': 'utf-8', 'reason': 'python3', 'cwd': os.getcwd()})
 
     ok = False
+    code = None
     try:
-        code = U.compile_source(text, S.prog_path_b, enc)
-    except UnicodeEncodeError as e:
-        report_encode_error(e, text, path_u)
-        code = None
+        code = U.compile_source(text, S.prog_path)
     except (SyntaxError, TypeError, ValueError, OverflowError):
         report_exception('compile', text)
-        code = None
+
     trace = msg.get('trace')
     if code is not None:
         if trace and trace.get('mode', 'off') != 'off':
             TRACE.command(dict(trace, cmd='trace'))
             sys.settrace(_global_trace)
         try:
-            exec code in ns
+            exec(code, ns)
             ok = True
         except SystemExit as e:
             ok = e.code in (None, 0)
             if not ok and e.code is not None:
-                if isinstance(e.code, (int, long)):
-                    OUTPUT.add('stderr', u'(Το πρόγραμμα τερμάτισε με κωδικό %d)\n' % e.code)
+                if isinstance(e.code, int):
+                    OUTPUT.add('stderr', f'(Το πρόγραμμα τερμάτισε με κωδικό {e.code})\n')
                 else:
-                    OUTPUT.add('stderr', U.to_u(e.code, S.encoding) + u'\n')
+                    OUTPUT.add('stderr', str(e.code) + '\n')
         except BaseException:
             report_exception('run', text)
         finally:
@@ -711,17 +624,10 @@ def repl_loop(ns):
         if msg['cmd'] == 'globals':
             send_globals(ns)
             continue
-        buf.append(msg.get('line', u''))
-        source = u'\n'.join(buf)
+        buf.append(msg.get('line', ''))
+        source = '\n'.join(buf)
         try:
-            data = U.normalize_source(source).encode(S.encoding)
-        except UnicodeEncodeError as e:
-            buf = []
-            report_encode_error(e, source, u'<shell>')
-            send({'type': 'prompt', 'more': False})
-            continue
-        try:
-            code = codeop.compile_command(data, SHELL_FILE, 'single')
+            code = codeop.compile_command(U.normalize_source(source), SHELL_FILE, 'single')
         except (SyntaxError, OverflowError, ValueError, TypeError):
             buf = []
             register_source(SHELL_FILE, source)
@@ -734,12 +640,11 @@ def repl_loop(ns):
         buf = []
         register_source(SHELL_FILE, source)
         try:
-            exec code in ns
+            exec(code, ns)
         except SystemExit:
-            OUTPUT.add('stderr', u'(Το exit() αγνοείται στο Shell)\n')
+            OUTPUT.add('stderr', '(Το exit() αγνοείται στο Shell)\n')
         except BaseException:
             report_exception('repl', source)
-        sys.stdout.softspace = 0
         _pump_tk()
         send_globals(ns)
         send({'type': 'prompt', 'more': False})
@@ -749,18 +654,19 @@ def main():
     sys.stdout = OutStream('stdout')
     sys.stderr = OutStream('stderr')
     sys.stdin = InStream()
+    builtins.input = _edu_input
     for target in (_reader, _flusher):
         t = threading.Thread(target=target)
         t.daemon = True
         t.start()
-    send({'type': 'ready', 'version': U.to_u(sys.version.split()[0]),
-          'executable': U.fs_decode(sys.executable)})
+    send({'type': 'ready', 'version': sys.version.split()[0],
+          'executable': sys.executable})
     msg = wait_cmd(('run', 'shell'))
     if msg['cmd'] == 'run':
         ns = run_program(msg)
     else:
-        S.default_encoding = msg.get('encoding') or 'cp1253'
-        S.encoding = U.choose_encoding(u'', S.default_encoding)[0]
+        S.default_encoding = 'utf-8'
+        S.encoding = 'utf-8'
         setup_folder(msg.get('cwd'))
         ns = make_namespace(None)
     repl_loop(ns)

@@ -90,16 +90,6 @@ function buildMenu({ send, settings, examples, recent, openRecent, classroom = {
         cmd('step', 'Επόμενη γραμμή (βήμα-βήμα)', 'F10'),
         { type: 'separator' },
         cmd('clearShell', 'Καθαρισμός Shell', ''),
-        { type: 'separator' },
-        {
-          label: 'Κωδικοποίηση ελληνικών κατά την εκτέλεση',
-          submenu: [
-            cmd('encoding:cp1253', 'cp1253 (όπως το IDLE, len(\'Αθήνα\') = 5)', '',
-              { type: 'radio', checked: settings.stringEncoding === 'cp1253' }),
-            cmd('encoding:utf-8', 'utf-8 (len(\'Αθήνα\') = 10)', '',
-              { type: 'radio', checked: settings.stringEncoding === 'utf-8' }),
-          ],
-        },
       ],
     },
     {

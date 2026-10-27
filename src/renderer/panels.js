@@ -3,10 +3,10 @@
   'use strict';
 
   const TYPE_GR = {
-    int: 'ακέραιος', long: 'ακέραιος', float: 'πραγματικός', str: 'συμβολοσειρά', unicode: 'συμβολοσειρά',
-    list: 'λίστα', tuple: 'πλειάδα', dict: 'λεξικό', bool: 'λογική', NoneType: 'κενή τιμή', set: 'σύνολο',
-    function: 'συνάρτηση', classobj: 'κλάση', type: 'κλάση', instance: 'αντικείμενο', file: 'αρχείο',
-    builtin_function_or_method: 'συνάρτηση', instancemethod: 'μέθοδος',
+    int: 'ακέραιος', float: 'πραγματικός', str: 'συμβολοσειρά', bytes: 'δυαδικά δεδομένα',
+    list: 'λίστα', tuple: 'πλειάδα', dict: 'λεξικό', bool: 'λογική', NoneType: 'κενή τιμή',
+    set: 'σύνολο', range: 'εύρος', function: 'συνάρτηση', type: 'κλάση',
+    builtin_function_or_method: 'συνάρτηση', method: 'μέθοδος',
   };
 
   function esc(s) {

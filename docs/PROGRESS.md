@@ -9,7 +9,7 @@
 | Προετοιμασία: repo και αρχεία παράδοσης | ✅ έγινε (Claude) | αρχικό |
 | 0: Rebranding | ✅ ολοκληρώθηκε | Φάση 0 |
 | 1: Εύρεση interpreter | ✅ ολοκληρώθηκε | Φάση 1 |
-| 2: Backend σε Python 3 | ⬜ | |
+| 2: Backend σε Python 3 | ✅ ολοκληρώθηκε | Φάση 2 |
 | 3: Editor, τεκμηρίωση, Βοηθός | ⬜ | |
 | 4: Περιεχόμενο | ⬜ | |
 | 5: Τάξη | ⬜ | |
@@ -79,6 +79,53 @@
 
 **Για έλεγχο από τον χρήστη:**
 - Έλεγχος της συμπεριφοράς εύρεσης και σε περιβάλλον με παλαιότερη Python 3 (3.10–3.13) αν υπάρχει.
+
+### Φάση 2: Backend σε Python 3
+**Τι έγινε:**
+- `backend/runner.py`:
+  - Pipes επικοινωνίας σε δυαδική μορφή (`rb`/`wb`, unbuffered) με κωδικοποίηση/αποκωδικοποίηση UTF-8 JSON.
+  - Αφαίρεση εξαρτήσεων Python 2 (`imp`, `Queue`, `__builtin__`) και χρήση των σύγχρονων modules `importlib`, `queue`, `builtins`, `types.ModuleType`.
+  - Modules μαθητή: προσθήκη του φακέλου του προγράμματος στο `sys.path` και καταγραφή των πηγών με `register_source` για `linecache` και εντοπισμό σφαλμάτων.
+  - Εκτέλεση με `exec(code, ns)` και `compile()` σε `str` (UTF-8).
+  - Υπογραφές συναρτήσεων με `inspect.signature` και αναφορά γραμμής ορισμού μέσω `__code__.co_firstlineno`.
+  - Αντικατάσταση `os.getcwdu()` με `os.getcwd()`, αφαίρεση τύπου `long`.
+  - Ανίχνευση Tkinter μέσω του module `tkinter`.
+  - Αντικατάσταση της `builtins.input` με custom υλοποίηση που στέλνει `input_request` και επιστρέφει `str` (χωρίς `eval` και χωρίς ανάγκη ανίχνευσης `from_input`).
+  - Traceback: αφαίρεση του προθέματος `exceptions.`, απόκρυψη εσωτερικών πλαισίων του runner, αξιοποίηση `end_offset` για υπόδειξη εύρους χαρακτήρων στο `SyntaxError`.
+  - Μεταβλητές: αναπαράσταση strings χωρίς το πρόθεμα `u'…'`, υποστήριξη `bytes` και `range`.
+- `backend/_epal_util.py`:
+  - Πλήρης αφαίρεση της παλιάς λογικής cp1253/bytes (`fs_encode`, `fs_decode`, `to_u`, `decode_file_bytes`, επιλογή κωδικοποίησης).
+  - Κανονικοποίηση πηγής και εξαγωγή πληροφοριών `SyntaxError` (`lineno`, `col`, `end_col`, `line_str`).
+  - Regex ανίχνευσης `tkinter` και υπομονάδων (`tkinter.messagebox`, κλπ.).
+- `backend/checker.py`:
+  - Μεταγλώττιση σε `str`, ρύθμιση `reconfigure(encoding='utf-8')` σε `stdin`/`stdout`.
+- `src/main/main.js`:
+  - Προεπιλεγμένη κωδικοποίηση `utf-8` (αντί για `cp1253`).
+  - Έλεγχος στο `writeSource`: επιστροφή ένδειξης `convertedFromCp1253` όταν υφιστάμενο αρχείο cp1253 αποθηκεύεται σε UTF-8.
+- `src/main/menu.js`:
+  - Αφαίρεση του παλιού υπομενού επιλογής κωδικοποίησης εκτέλεσης (cp1253/utf-8).
+- `src/renderer/app.js`:
+  - Εμφάνιση ενημέρωσης στο Shell («Το αρχείο μετατράπηκε και αποθηκεύτηκε σε κωδικοποίηση UTF-8») μετά την αποθήκευση.
+- `src/renderer/panels.js`:
+  - Ενημέρωση `TYPE_GR`: αφαίρεση `long`, `unicode`, `classobj`, `instance`, προσθήκη `bytes`, `range`.
+- `scripts/run-pytests.js`:
+  - Script για αυτόματη ανίχνευση του Python 3 interpreter και εκτέλεση των unittest.
+- `package.json`:
+  - Ενημέρωση του npm script `test` ώστε να τρέχει το `scripts/run-pytests.js`.
+- `tests/test_runner.py`:
+  - Μεταφορά σε Python 3 (30 tests) με νέους ελέγχους για f-strings, ελληνικά ονόματα μεταβλητών/συναρτήσεων, επιστροφή `str` από `input()`, UTF-8 αρχεία και σωστό τερματισμό διεργασιών.
+
+**Πώς ελέγχθηκε:**
+- `npm test`: 49 JS unit tests + 30 Python 3 runner tests πέρασαν 100%.
+
+**Αποκλίσεις από το σχέδιο και γιατί:**
+- Καμία.
+
+**Tests που μένουν σπασμένα (και σε ποια φάση διορθώνονται):**
+- Κανένα. Όλα τα τεστ εκτελούνται και περνούν με επιτυχία.
+
+**Για έλεγχο από τον χρήστη:**
+- Εκτέλεση προγραμμάτων με f-strings και ελληνικά ονόματα στον editor.
 
 ## Ανοιχτά ερωτήματα
 

@@ -448,6 +448,9 @@
       this.renderTabs();
       this.updateTitle();
       this.persistSession();
+      if (r.convertedFromCp1253) {
+        this.shell.stopped('Το αρχείο μετατράπηκε και αποθηκεύτηκε σε κωδικοποίηση UTF-8.');
+      }
       return true;
     },
 

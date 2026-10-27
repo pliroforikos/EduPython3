@@ -13,7 +13,7 @@ const DEFAULT_SETTINGS = {
   pythonPath: '',
   fontSize: 16,
   theme: 'light',
-  stringEncoding: 'cp1253',
+  stringEncoding: 'utf-8',
   saveBeforeRun: true,
   minimap: true,
   wordWrap: false,
@@ -148,13 +148,20 @@ function writeSource(p, content) {
         'που δηλώνει το αρχείο στην πρώτη γραμμή (coding). Άλλαξε τη δήλωση σε utf-8 ή αφαίρεσε τον χαρακτήρα.',
     };
   }
+  let convertedFromCp1253 = false;
   try {
+    if (fs.existsSync(p)) {
+      const prev = decodeBuffer(fs.readFileSync(p));
+      if (prev.encoding === 'windows-1253' && enc.encoding === 'utf-8') {
+        convertedFromCp1253 = true;
+      }
+    }
     fs.writeFileSync(p, enc.buffer);
   } catch (e) {
     return { ok: false, error: `Δεν ήταν δυνατή η αποθήκευση: ${e.message}` };
   }
   addRecent(p);
-  return { ok: true, path: p, encoding: enc.encoding };
+  return { ok: true, path: p, encoding: enc.encoding, convertedFromCp1253 };
 }
 
 ipcMain.handle('file:open', async () => {

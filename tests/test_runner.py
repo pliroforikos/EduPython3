@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
-"""Tests για το backend/runner.py. Τρέχουν με Python 2.7:
+"""Tests για το backend/runner.py. Τρέχουν με Python 3:
 
-    C:\\Python27\\python.exe -m unittest discover -s tests -p "test_*.py"
+    py -3 -m unittest discover -s tests -p "test_*.py"
 """
 import os
 import sys
@@ -16,24 +15,27 @@ RUNNER = os.path.join(ROOT, 'backend', 'runner.py')
 CHECKER = os.path.join(ROOT, 'backend', 'checker.py')
 
 
-class Session(object):
+class Session:
     def __init__(self):
+        env = dict(os.environ, PYTHONUTF8='1', PYTHONIOENCODING='utf-8')
         self.p = subprocess.Popen([sys.executable, '-u', '-B', RUNNER],
                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE)
+                                  stderr=subprocess.PIPE, env=env)
         self.messages = []
         ready = self.read()
         assert ready['type'] == 'ready', ready
 
     def send(self, **cmd):
-        self.p.stdin.write(json.dumps(cmd) + '\n')
+        data = (json.dumps(cmd, ensure_ascii=False) + '\n').encode('utf-8')
+        self.p.stdin.write(data)
         self.p.stdin.flush()
 
     def read(self):
         line = self.p.stdout.readline()
         if not line:
-            raise AssertionError('ο runner τερμάτισε: ' + self.p.stderr.read())
-        msg = json.loads(line)
+            err = self.p.stderr.read().decode('utf-8', 'replace')
+            raise AssertionError('ο runner τερμάτισε: ' + err)
+        msg = json.loads(line.decode('utf-8', 'replace'))
         self.messages.append(msg)
         return msg
 
@@ -47,201 +49,208 @@ class Session(object):
                 return msg
 
     def output(self, stream='stdout'):
-        return u''.join(m['text'] for m in self.messages
-                        if m['type'] == 'out' and m['stream'] == stream)
+        return ''.join(m['text'] for m in self.messages
+                       if m['type'] == 'out' and m['stream'] == stream)
 
     def errors(self):
         return [m for m in self.messages if m['type'] == 'error']
 
     def last_globals(self):
         g = [m for m in self.messages if m['type'] == 'globals'][-1]
-        return dict((v['name'], v) for v in g['vars'])
+        return {v['name']: v for v in g['vars']}
 
     def close(self):
         try:
+            if self.p.stdin:
+                self.p.stdin.close()
+            if self.p.stdout:
+                self.p.stdout.close()
+            if self.p.stderr:
+                self.p.stderr.close()
             self.p.kill()
+            self.p.wait()
         except OSError:
             pass
 
 
 class RunnerTest(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix='epal_')
+        self.tmp = tempfile.mkdtemp(prefix='edupy3_')
         self.s = Session()
 
     def tearDown(self):
         self.s.close()
         shutil.rmtree(self.tmp, ignore_errors=True)
 
-    def run_code(self, source, inputs=(), name='prog.py', encoding='cp1253'):
-        path = os.path.join(self.tmp, name).decode(sys.getfilesystemencoding())
+    def run_code(self, source, inputs=(), name='prog.py'):
+        path = os.path.join(self.tmp, name)
         self.path = path
-        self.s.send(cmd='run', path=path, source=source, encoding=encoding)
+        self.s.send(cmd='run', path=path, source=source, encoding='utf-8')
         return self.s.until_prompt(inputs)
 
     def test_greek_print_and_len(self):
-        self.run_code(u"name = 'Αθήνα'\nprint name, len(name)\n")
-        self.assertEqual(self.s.output(), u'Αθήνα 5\n')
+        self.run_code("name = 'Αθήνα'\nprint(name, len(name))\n")
+        self.assertEqual(self.s.output(), 'Αθήνα 5\n')
         self.assertEqual(self.s.errors(), [])
         g = self.s.last_globals()
-        self.assertEqual(g['name']['repr'], u"'Αθήνα'")
+        self.assertEqual(g['name']['repr'], "'Αθήνα'")
         self.assertEqual(g['name']['len'], 5)
 
-    def test_raw_input_and_input(self):
-        self.run_code(u"x = raw_input('Όνομα: ')\nn = input('Αριθμός: ')\n"
-                      u"print x.upper(), n * 2\n", inputs=[u'Kostas', u'21'])
-        self.assertEqual(self.s.output(), u'Όνομα: Αριθμός: KOSTAS 42\n')
+    def test_input_and_int_conversion(self):
+        self.run_code("x = input('Όνομα: ')\nn = int(input('Αριθμός: '))\n"
+                      "print(x.upper(), n * 2)\n", inputs=['Kostas', '21'])
+        self.assertEqual(self.s.output(), 'Όνομα: Αριθμός: KOSTAS 42\n')
         req = [m for m in self.s.messages if m['type'] == 'input_request']
         self.assertEqual(len(req), 2)
 
+    def test_input_returns_str(self):
+        self.run_code("val = input('Τιμή: ')\nprint(type(val).__name__, repr(val))\n", inputs=['42'])
+        self.assertEqual(self.s.output(), "Τιμή: str '42'\n")
+
     def test_greek_input(self):
-        self.run_code(u"x = raw_input()\nprint len(x), x\n", inputs=[u'Αμυγδαλιά'])
-        self.assertEqual(self.s.output(), u'9 Αμυγδαλιά\n')
+        self.run_code("x = input()\nprint(len(x), x)\n", inputs=['Αμυγδαλιά'])
+        self.assertEqual(self.s.output(), '9 Αμυγδαλιά\n')
+
+    def test_fstrings(self):
+        self.run_code("onoma = 'Μαρία'\nvathmos = 19.5\nprint(f'{onoma}: {vathmos}')\n")
+        self.assertEqual(self.s.output(), 'Μαρία: 19.5\n')
+        self.assertEqual(self.s.errors(), [])
+
+    def test_greek_names(self):
+        self.run_code("μέτρηση = 10\ndef διπλάσιο(χ):\n    return χ * 2\nαποτέλεσμα = διπλάσιο(μέτρηση)\nprint(αποτέλεσμα)\n")
+        self.assertEqual(self.s.output(), '20\n')
+        self.assertEqual(self.s.errors(), [])
+        g = self.s.last_globals()
+        self.assertEqual(g['αποτέλεσμα']['repr'], '20')
 
     def test_syntax_error_location(self):
-        self.run_code(u"x = 1\nif x > 0\n    print x\n")
+        self.run_code("x = 1\nif x > 0\n    print(x)\n")
         err = self.s.errors()[0]
         self.assertEqual(err['exc_type'], 'SyntaxError')
         self.assertEqual(err['location']['lineno'], 2)
         self.assertEqual(err['location']['col'], 8)
-        self.assertIn(u'if x > 0', err['traceback'])
+        self.assertIn('if x > 0', err['traceback'])
 
     def test_indentation_error(self):
-        self.run_code(u"for i in range(3):\nprint i\n")
+        self.run_code("for i in range(3):\nprint(i)\n")
         err = self.s.errors()[0]
         self.assertEqual(err['exc_type'], 'IndentationError')
         self.assertEqual(err['location']['lineno'], 2)
 
     def test_runtime_traceback_hides_runner(self):
-        self.run_code(u"def f(a):\n    return 10 / a\n\nprint f(0)\n")
+        self.run_code("def f(a):\n    return 10 / a\n\nprint(f(0))\n")
         err = self.s.errors()[0]
         self.assertEqual(err['exc_type'], 'ZeroDivisionError')
         self.assertEqual([f['lineno'] for f in err['frames']], [4, 2])
         self.assertNotIn('runner.py', err['traceback'])
         self.assertEqual(err['location']['lineno'], 2)
-        self.assertTrue(err['traceback'].startswith(u'Traceback (most recent call last):'))
-
-    def test_name_error_from_input(self):
-        self.run_code(u"name = input('Όνομα: ')\n", inputs=[u'Kostas'])
-        err = self.s.errors()[0]
-        self.assertEqual(err['exc_type'], 'NameError')
-        self.assertTrue(err['from_input'])
-        self.assertEqual(err['last_input'], u'Kostas')
-        self.assertEqual(err['location']['lineno'], 1)
+        self.assertTrue(err['traceback'].startswith('Traceback (most recent call last):'))
 
     def test_name_error_suggestions(self):
-        self.run_code(u"athroisma = 0\nprint athrisma\n")
+        self.run_code("athroisma = 0\nprint(athrisma)\n")
         err = self.s.errors()[0]
-        self.assertFalse(err['from_input'])
-        self.assertIn(u'athroisma', err['names'])
+        self.assertEqual(err['exc_type'], 'NameError')
+        self.assertIn('athroisma', err['names'])
 
     def test_value_error_greek_message(self):
-        self.run_code(u"x = int(raw_input())\n", inputs=[u'πέντε'])
+        self.run_code("x = int(input())\n", inputs=['πέντε'])
         err = self.s.errors()[0]
         self.assertEqual(err['exc_type'], 'ValueError')
-        self.assertIn(u'πέντε', err['message'])
+        self.assertIn('πέντε', err['message'])
 
     def test_relative_file_in_program_folder(self):
-        self.run_code(u"f = open('data.txt', 'w')\nf.write('Γεια')\nf.close()\n"
-                      u"print open('data.txt').read()\n")
-        self.assertEqual(self.s.output(), u'Γεια\n')
+        self.run_code("f = open('data.txt', 'w', encoding='utf-8')\nf.write('Γεια')\nf.close()\n"
+                      "print(open('data.txt', encoding='utf-8').read())\n")
+        self.assertEqual(self.s.output(), 'Γεια\n')
         with open(os.path.join(self.tmp, 'data.txt'), 'rb') as f:
-            self.assertEqual(f.read(), u'Γεια'.encode('cp1253'))
+            self.assertEqual(f.read(), 'Γεια'.encode('utf-8'))
 
     def test_repl_after_run(self):
-        self.run_code(u"x = 21\n")
-        self.s.send(cmd='repl', line=u'x * 2')
+        self.run_code("x = 21\n")
+        self.s.send(cmd='repl', line='x * 2')
         self.s.until_prompt()
-        self.assertEqual(self.s.output(), u'42\n')
-        self.s.send(cmd='repl', line=u'for i in range(2):')
+        self.assertEqual(self.s.output(), '42\n')
+        self.s.send(cmd='repl', line='for i in range(2):')
         self.assertTrue(self.s.until_prompt()['more'])
-        self.s.send(cmd='repl', line=u'    print i')
+        self.s.send(cmd='repl', line='    print(i)')
         self.assertTrue(self.s.until_prompt()['more'])
-        self.s.send(cmd='repl', line=u'')
+        self.s.send(cmd='repl', line='')
         self.s.until_prompt()
-        self.assertEqual(self.s.output(), u'42\n0\n1\n')
-        self.s.send(cmd='repl', line=u'y = 1 +')
+        self.assertEqual(self.s.output(), '42\n0\n1\n')
+        self.s.send(cmd='repl', line='y = 1 +')
         self.s.until_prompt()
         self.assertEqual(self.s.errors()[-1]['exc_type'], 'SyntaxError')
         self.assertEqual(self.s.errors()[-1]['phase'], 'repl')
 
-    def test_tkinter_uses_utf8(self):
-        self.run_code(u"import Tkinter\nprint 'Αθήνα'\n")
+    def test_tkinter_detection(self):
+        self.run_code("import tkinter\nprint('Αθήνα')\n")
         started = [m for m in self.s.messages if m['type'] == 'started'][0]
         self.assertEqual(started['encoding'], 'utf-8')
-        self.assertEqual(started['reason'], 'tkinter')
-        self.assertEqual(self.s.output(), u'Αθήνα\n')
+        self.assertEqual(self.s.output(), 'Αθήνα\n')
 
     def test_tkinter_window_mainloop(self):
-        self.run_code(u"# -*- coding: utf-8 -*-\nfrom Tkinter import *\nroot = Tk()\n"
-                      u"Label(root, text='Γεια σου').pack()\nroot.after(300, root.destroy)\n"
-                      u"root.mainloop()\nprint 'τέλος'\n")
+        self.run_code("from tkinter import *\nroot = Tk()\n"
+                      "Label(root, text='Γεια σου').pack()\nroot.after(300, root.destroy)\n"
+                      "root.mainloop()\nprint('τέλος')\n")
         self.assertEqual(self.s.errors(), [])
-        self.assertEqual(self.s.output(), u'τέλος\n')
+        self.assertEqual(self.s.output(), 'τέλος\n')
         g = self.s.last_globals()
         self.assertIn('root', g)
-        self.assertNotIn('Label', g)   # ονόματα του `from Tkinter import *` κρύβονται
+        self.assertNotIn('Label', g)   # ονόματα του `from tkinter import *` κρύβονται
 
     def test_declared_coding_respected(self):
-        self.run_code(u"# -*- coding: utf-8 -*-\nprint len('Αθήνα')\n")
-        self.assertEqual(self.s.output(), u'10\n')
-
-    def test_unencodable_character(self):
-        self.run_code(u"print 'ok'\nprint '\u263a'\n")
-        err = self.s.errors()[0]
-        self.assertEqual(err['exc_type'], 'UnicodeEncodeError')
-        self.assertEqual(err['location']['lineno'], 2)
+        self.run_code("# -*- coding: utf-8 -*-\nprint(len('Αθήνα'))\n")
+        self.assertEqual(self.s.output(), '5\n')
 
     def test_student_module_import(self):
-        with open(os.path.join(self.tmp, 'mymod.py'), 'wb') as f:
-            f.write(u"def hello():\n    return 'Γεια σου'\n".encode('utf-8'))
-        self.run_code(u"import mymod\nprint mymod.hello(), len(mymod.hello())\n")
+        with open(os.path.join(self.tmp, 'mymod.py'), 'w', encoding='utf-8') as f:
+            f.write("def hello():\n    return 'Γεια σου'\n")
+        self.run_code("import mymod\nprint(mymod.hello(), len(mymod.hello()))\n")
         self.assertEqual(self.s.errors(), [])
-        self.assertEqual(self.s.output(), u'Γεια σου 8\n')
+        self.assertEqual(self.s.output(), 'Γεια σου 8\n')
 
     def test_star_import_hidden_from_variables(self):
-        self.run_code(u"from math import *\nr = 2\nembadon = pi * r ** 2\n")
+        self.run_code("from math import *\nr = 2\nembadon = pi * r ** 2\n")
         g = self.s.last_globals()
         self.assertEqual(sorted(g), ['embadon', 'r'])
 
     def test_functions_show_signature(self):
-        self.run_code(u"def dequeue(queue):\n    '''Εξαγωγή από ουρά'''\n    return queue.pop(0)\n\n"
-                      u"def f(a, b=1, *args, **kw):\n    pass\n\ndiplo = lambda x: 2 * x\n"
-                      u"from math import sqrt\noura = []\n")
+        self.run_code("def dequeue(queue):\n    '''Εξαγωγή από ουρά'''\n    return queue.pop(0)\n\n"
+                      "def f(a, b=1, *args, **kw):\n    pass\n\ndiplo = lambda x: 2 * x\n"
+                      "from math import sqrt\noura = []\n")
         g = self.s.last_globals()
-        self.assertEqual(g['dequeue']['repr'], u'dequeue(queue)')
+        self.assertEqual(g['dequeue']['repr'], 'dequeue(queue)')
         self.assertEqual(g['dequeue']['kind'], 'function')
         self.assertEqual(g['dequeue']['line'], 1)
-        self.assertEqual(g['dequeue']['doc'], u'Εξαγωγή από ουρά')
-        self.assertEqual(g['f']['repr'], u'f(a, b=1, *args, **kw)')
+        self.assertEqual(g['dequeue']['doc'], 'Εξαγωγή από ουρά')
+        self.assertEqual(g['f']['repr'], 'f(a, b=1, *args, **kw)')
         self.assertEqual(g['f']['line'], 5)
-        self.assertEqual(g['diplo']['repr'], u'diplo(x)')
-        self.assertEqual(g['sqrt']['repr'], u'sqrt(…)')
+        self.assertEqual(g['diplo']['repr'], 'diplo(x)')
+        self.assertEqual(g['sqrt']['repr'], 'sqrt(…)')
         self.assertNotIn('kind', g['oura'])
 
     def test_sys_exit_is_clean(self):
-        self.run_code(u"import sys\nprint 1\nsys.exit()\nprint 2\n")
-        self.assertEqual(self.s.output(), u'1\n')
+        self.run_code("import sys\nprint(1)\nsys.exit()\nprint(2)\n")
+        self.assertEqual(self.s.output(), '1\n')
         done = [m for m in self.s.messages if m['type'] == 'done'][0]
         self.assertTrue(done['ok'])
 
     def test_os_system_does_not_break_protocol(self):
-        self.run_code(u"import os\nos.system('echo hi')\nprint 'after'\n")
-        self.assertIn(u'after', self.s.output())
+        self.run_code("import os\nos.system('echo hi')\nprint('after')\n")
+        self.assertIn('after', self.s.output())
 
     def test_output_rate_is_limited_but_complete(self):
-        # 500.000 χαρακτήρες: τα πρώτα 200.000 περνούν αμέσως, τα υπόλοιπα με ~200.000/s
         import time
         start = time.time()
-        self.run_code(u"for i in range(5000):\n    print 'x' * 99\n")
+        self.run_code("for i in range(5000):\n    print('x' * 99)\n")
         elapsed = time.time() - start
         self.assertEqual(len(self.s.output()), 500000)
         self.assertGreater(elapsed, 1.0)
 
     # --- εκτέλεση βήμα-βήμα ---------------------------------------------------
     def start_traced(self, source, mode='step', delay=0):
-        path = os.path.join(self.tmp, 'prog.py').decode(sys.getfilesystemencoding())
-        self.s.send(cmd='run', path=path, source=source, encoding='cp1253',
+        path = os.path.join(self.tmp, 'prog.py')
+        self.s.send(cmd='run', path=path, source=source, encoding='utf-8',
                     trace={'mode': mode, 'delay': delay})
 
     def next_of(self, *types):
@@ -251,7 +260,7 @@ class RunnerTest(unittest.TestCase):
                 return msg
 
     def test_step_by_step(self):
-        self.start_traced(u"s = 0\nfor i in range(2):\n    s = s + i\nprint 'τέλος', s\n")
+        self.start_traced("s = 0\nfor i in range(2):\n    s = s + i\nprint('τέλος', s)\n")
         lines = []
         while True:
             msg = self.next_of('step', 'prompt')
@@ -260,72 +269,86 @@ class RunnerTest(unittest.TestCase):
             lines.append(msg['line'])
             self.s.send(cmd='step')
         self.assertEqual(lines, [1, 2, 3, 2, 3, 2, 4])
-        self.assertIn(u'τέλος 1', self.s.output())
+        self.assertIn('τέλος 1', self.s.output())
 
     def test_step_waits_for_next(self):
-        self.start_traced(u"x = 1\nx = 2\n")
+        self.start_traced("x = 1\nx = 2\n")
         self.assertEqual(self.next_of('step')['line'], 1)
-        # χωρίς «Επόμενη» δεν προχωρά: η επόμενη γραμμή δεν έχει σταλεί
         self.s.send(cmd='globals')
         self.s.send(cmd='step')
         msg = self.next_of('step')
         self.assertEqual(msg['line'], 2)
-        self.assertEqual([v['repr'] for v in msg['vars'] if v['name'] == 'x'], [u'1'])
+        self.assertEqual([v['repr'] for v in msg['vars'] if v['name'] == 'x'], ["'1'" if isinstance(1, str) else '1'])
 
     def test_step_shows_function_locals(self):
-        self.start_traced(u"def f(a):\n    b = a * 2\n    return b\ny = f(5)\n", mode='auto')
+        self.start_traced("def f(a):\n    b = a * 2\n    return b\ny = f(5)\n", mode='auto')
         steps = []
         while True:
             msg = self.next_of('step', 'prompt')
             if msg['type'] == 'prompt':
                 break
             steps.append(msg)
-        inside = [m for m in steps if m.get('func') == u'f']
+        inside = [m for m in steps if m.get('func') == 'f']
         self.assertEqual([m['line'] for m in inside], [2, 3])
-        self.assertEqual(dict((v['name'], v['repr']) for v in inside[-1]['locals']),
-                         {u'a': u'5', u'b': u'10'})
-        self.assertEqual(self.s.last_globals()['y']['repr'], u'10')
+        self.assertEqual({v['name']: v['repr'] for v in inside[-1]['locals']},
+                         {'a': '5', 'b': '10'})
+        self.assertEqual(self.s.last_globals()['y']['repr'], '10')
 
     def test_trace_mode_can_change_while_running(self):
-        self.start_traced(u"for i in range(100):\n    pass\nprint 'ok'\n")
+        self.start_traced("for i in range(100):\n    pass\nprint('ok')\n")
         self.assertEqual(self.next_of('step')['line'], 1)
         self.s.send(cmd='trace', mode='off')
         self.next_of('prompt')
         self.assertEqual(len([m for m in self.s.messages if m['type'] == 'step']), 1)
-        self.assertIn(u'ok', self.s.output())
+        self.assertIn('ok', self.s.output())
 
     def test_step_with_input(self):
-        self.start_traced(u"x = raw_input('Όνομα: ')\nprint 'Γεια', x\n", mode='auto')
+        self.start_traced("x = input('Όνομα: ')\nprint('Γεια', x)\n", mode='auto')
         while True:
             msg = self.next_of('input_request', 'prompt')
             if msg['type'] == 'prompt':
                 break
-            self.s.send(cmd='input', text=u'Άννα')
+            self.s.send(cmd='input', text='Άννα')
         self.assertEqual([m['line'] for m in self.s.messages if m['type'] == 'step'], [1, 2])
-        self.assertIn(u'Γεια Άννα', self.s.output())
+        self.assertIn('Γεια Άννα', self.s.output())
 
 
 class CheckerTest(unittest.TestCase):
     def setUp(self):
+        env = dict(os.environ, PYTHONUTF8='1', PYTHONIOENCODING='utf-8')
         self.p = subprocess.Popen([sys.executable, '-u', '-B', CHECKER],
-                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                                  stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                  env=env)
 
     def tearDown(self):
-        self.p.kill()
+        try:
+            if self.p.stdin:
+                self.p.stdin.close()
+            if self.p.stdout:
+                self.p.stdout.close()
+            self.p.kill()
+            self.p.wait()
+        except OSError:
+            pass
 
     def check(self, source):
-        self.p.stdin.write(json.dumps({'id': 1, 'source': source, 'encoding': 'cp1253'}) + '\n')
+        data = (json.dumps({'id': 1, 'source': source, 'encoding': 'utf-8'}, ensure_ascii=False) + '\n').encode('utf-8')
+        self.p.stdin.write(data)
         self.p.stdin.flush()
-        return json.loads(self.p.stdout.readline())
+        line = self.p.stdout.readline()
+        return json.loads(line.decode('utf-8'))
 
     def test_ok(self):
-        self.assertTrue(self.check(u"print 'Γεια'\n")['ok'])
+        self.assertTrue(self.check("print('Γεια')\n")['ok'])
 
     def test_missing_colon(self):
-        r = self.check(u"x = 'α'\nwhile x\n    pass\n")
+        r = self.check("x = 'α'\nwhile x\n    pass\n")
         self.assertFalse(r['ok'])
         self.assertEqual(r['lineno'], 2)
         self.assertEqual(r['col'], 7)
+
+    def test_greek_identifiers(self):
+        self.assertTrue(self.check("πλήθος = 5\nprint(πλήθος)\n")['ok'])
 
 
 if __name__ == '__main__':
