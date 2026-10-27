@@ -121,12 +121,13 @@
           <select id="set-theme"><option value="light">Φωτεινό</option><option value="dark">Σκοτεινό</option></select>
         </label>
       </div>
-      <label class="field">Κωδικοποίηση ελληνικών κατά την εκτέλεση
-        <select id="set-encoding">
-          <option value="cp1253">cp1253: όπως το IDLE στα ελληνικά Windows (len('Αθήνα') = 5)</option>
-          <option value="utf-8">utf-8 (len('Αθήνα') = 10)</option>
+      <label class="field">Ελληνικά ονόματα μεταβλητών
+        <select id="set-greek-names">
+          <option value="warn">Προειδοποίηση (επιτρέπεται στην Python 3, αλλά στις εξετάσεις γράφουμε λατινικά)</option>
+          <option value="allow">Επιτρέπονται (κανονική συμπεριφορά Python 3)</option>
+          <option value="error">Σφάλμα (όπως στις εξετάσεις / Python 2)</option>
         </select>
-        <small>Αν το πρόγραμμα έχει δήλωση <code># -*- coding: … -*-</code> ή χρησιμοποιεί Tkinter, προτιμάται αυτόματα η κατάλληλη.</small>
+        <small>Στις εξετάσεις και στο σχολικό βιβλίο τα ονόματα μεταβλητών γράφονται με λατινικούς χαρακτήρες (greeklish).</small>
       </label>
       <label class="check"><input type="checkbox" id="set-save"> Αυτόματη αποθήκευση πριν την εκτέλεση</label>
       <label class="check"><input type="checkbox" id="set-live"> Έλεγχος σύνταξης καθώς γράφω</label>

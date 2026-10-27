@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS = {
   fontSize: 16,
   theme: 'light',
   stringEncoding: 'utf-8',
+  greekNames: 'warn',
   saveBeforeRun: true,
   minimap: true,
   wordWrap: false,
@@ -40,13 +41,25 @@ function debugLog(...a) {
 let settings = { ...DEFAULT_SETTINGS };
 let forceClose = false;
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
+function systemDefaultsFile() {
+  if (process.platform === 'win32') {
+    const progData = process.env.ProgramData || 'C:\\ProgramData';
+    return path.join(progData, 'EduPython3', 'defaults.json');
+  }
+  return '/etc/edupython3/defaults.json';
+}
 
 function loadSettings() {
+  let defaults = { ...DEFAULT_SETTINGS };
+  try {
+    const sysDefaults = JSON.parse(fs.readFileSync(systemDefaultsFile(), 'utf-8'));
+    defaults = { ...defaults, ...sysDefaults };
+  } catch (_) {}
   try {
     const data = JSON.parse(fs.readFileSync(settingsFile(), 'utf-8'));
-    settings = { ...DEFAULT_SETTINGS, ...data };
+    settings = { ...defaults, ...data };
   } catch (_) {
-    settings = { ...DEFAULT_SETTINGS };
+    settings = { ...defaults };
   }
   settings.pythonPath = findPython(settings.pythonPath) || '';
 }
@@ -263,7 +276,7 @@ ipcMain.on('backend:shell', () => backend.shell({ cwd: workDir(), encoding: sett
 ipcMain.on('backend:stop', () => backend.stop());
 ipcMain.on('backend:input', (_e, text) => backend.input(text));
 ipcMain.on('backend:repl', (_e, line) => backend.repl(line));
-ipcMain.handle('check', (_e, source) => checker.check(source, settings.stringEncoding));
+ipcMain.handle('check', (_e, source) => checker.check(source, settings.stringEncoding, settings.greekNames));
 
 ipcMain.on('app:closeNow', () => { forceClose = true; if (win) win.close(); });
 

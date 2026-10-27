@@ -331,8 +331,8 @@ class CheckerTest(unittest.TestCase):
         except OSError:
             pass
 
-    def check(self, source):
-        data = (json.dumps({'id': 1, 'source': source, 'encoding': 'utf-8'}, ensure_ascii=False) + '\n').encode('utf-8')
+    def check(self, source, greek_names='warn'):
+        data = (json.dumps({'id': 1, 'source': source, 'encoding': 'utf-8', 'greekNames': greek_names}, ensure_ascii=False) + '\n').encode('utf-8')
         self.p.stdin.write(data)
         self.p.stdin.flush()
         line = self.p.stdout.readline()
@@ -347,8 +347,16 @@ class CheckerTest(unittest.TestCase):
         self.assertEqual(r['lineno'], 2)
         self.assertEqual(r['col'], 7)
 
-    def test_greek_identifiers(self):
-        self.assertTrue(self.check("πλήθος = 5\nprint(πλήθος)\n")['ok'])
+    def test_greek_identifiers_allowed_or_warn(self):
+        self.assertTrue(self.check("πλήθος = 5\nprint(πλήθος)\n", greek_names='warn')['ok'])
+        self.assertTrue(self.check("πλήθος = 5\nprint(πλήθος)\n", greek_names='allow')['ok'])
+
+    def test_greek_identifiers_error(self):
+        r = self.check("πλήθος = 5\nprint(πλήθος)\n", greek_names='error')
+        self.assertFalse(r['ok'])
+        self.assertEqual(r['lineno'], 1)
+        self.assertEqual(r['exc_type'], 'SyntaxError')
+        self.assertIn('πλήθος', r['message'])
 
 
 if __name__ == '__main__':

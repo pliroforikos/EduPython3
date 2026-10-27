@@ -10,7 +10,7 @@
 | 0: Rebranding | ✅ ολοκληρώθηκε | Φάση 0 |
 | 1: Εύρεση interpreter | ✅ ολοκληρώθηκε | Φάση 1 |
 | 2: Backend σε Python 3 | ✅ ολοκληρώθηκε | Φάση 2 |
-| 3: Editor, τεκμηρίωση, Βοηθός | ⬜ | |
+| 3: Editor, τεκμηρίωση, Βοηθός | ✅ ολοκληρώθηκε | Φάση 3 |
 | 4: Περιεχόμενο | ⬜ | |
 | 5: Τάξη | ⬜ | |
 | 6: Tests | ⬜ | |
@@ -126,6 +126,61 @@
 
 **Για έλεγχο από τον χρήστη:**
 - Εκτέλεση προγραμμάτων με f-strings και ελληνικά ονόματα στον editor.
+
+### Φάση 3: Editor, τεκμηρίωση, Βοηθός σφαλμάτων
+**Τι έγινε:**
+- `src/renderer/editor.js`:
+  - Ορισμός γλώσσας Monaco σε `python3`.
+  - Tokenizer: προσθήκη keywords `nonlocal`, `async`, `await`, soft keywords `match`, `case`.
+  - Αφαίρεση του κανόνα `invalid` για τα ελληνικά γράμματα: τα ελληνικά γράμματα περιλαμβάνονται στους κανόνες ονομάτων μεταβλητών και συναρτήσεων.
+  - Υποστήριξη ακεραίων με `_`, δυαδικών (`0b`), οκταδικών (`0o`), αφαίρεση του παλιού επιθήματος `[lL]`.
+  - Υποστήριξη προθεμάτων συμβολοσειρών `f`, `fr`, `rf`, `rb`, `br` (εκτός από `r`, `b`, `u`).
+  - Πρόταση `tkinter` (αντί για `Tkinter`) στα import snippets.
+  - `setCharMarkers`: έλεγχος της ρύθμισης `greekNames`. Αν `warn`: marker πληροφορίας (info), αν `error`: marker σφάλματος (error), αν `allow`: κανένας marker.
+- `src/renderer/pydocs.js`:
+  - Πλήρης ανανέωση τεκμηρίωσης για Python 3: `print()` ως συνάρτηση με `sep` και `end`, `input()` που επιστρέφει `str`, f-strings, `str.format`, `range`, `open(..., encoding='utf-8')`, `dict.get`/`items`, `tkinter`/`tkinter.messagebox`.
+  - Αφαίρεση παλιών Python 2 στοιχείων (`raw_input`, `xrange`, `unicode`, `has_key`, `cmp`, `reduce`, `file`, `decode`/`encode` του str).
+  - Ενημέρωση όλων των snippets σε σύνταξη Python 3.
+- **Ελληνικά ονόματα & Ρυθμίσεις:**
+  - `src/main/main.js`: προσθήκη `greekNames: 'warn'` στα `DEFAULT_SETTINGS`.
+  - `src/main/main.js`: υποστήριξη κεντρικών προεπιλογών εργαστηρίου μέσω `%ProgramData%\EduPython3\defaults.json` στα Windows (`/etc/edupython3/defaults.json` σε Linux), που συγχωνεύονται αυτόματα κατά το `loadSettings()`.
+  - `src/renderer/index.html`: αντικατάσταση του παλιού dropdown κωδικοποίησης στον διάλογο ρυθμίσεων με το πεδίο «Ελληνικά ονόματα μεταβλητών» με επιλογές: Προειδοποίηση (`warn`), Απαγόρευση (`error`), Ελεύθερα (`allow`).
+  - `src/renderer/app.js`: αποθήκευση/φόρτωση της ρύθμισης `greekNames`, πέρασμα του `settings` στον `setCharMarkers` και στον Βοηθό λαθών (`ErrorHelp.explain(err, ctx)`).
+  - `src/main/pythonProcess.js` & `backend/checker.py`: αποστολή της παραμέτρου `greekNames` στον checker. Στην επιλογή `error`, ο checker αναλύει τα tokens και αναφέρει `SyntaxError` αν εντοπιστούν ελληνικά αναγνωριστικά.
+- `src/renderer/panels.js`:
+  - Ενημέρωση κειμένου καλωσορίσματος (χρήση `input()` αντί `raw_input()`).
+  - Ενημέρωση συμβουλής διαίρεσης για Python 3 (απλή διαίρεση `/` δίνει float, ακέραια `//`).
+- `src/renderer/errorHelp.js`:
+  - Πλήρης ανανέωση των `TRANSLATIONS` και των `RULES` για τις διατυπώσεις μηνυμάτων της Python 3.10–3.14.
+  - Ενημέρωση όλων των παραδειγμάτων κώδικα σε Python 3 (`print(...)`).
+  - Νέοι κανόνες για συχνά μαθητικά λάθη στην Python 3:
+    - `print x` χωρίς παρενθέσεις (`missing_parens_print`)
+    - Σύγκριση ή πράξη `input()` (`str`) με αριθμό (`str_compare_int`, `str_concat_int`, `type_str_op_num`)
+    - Διαίρεση `/` αντί `//` σε δείκτες λίστας και `range()` (`float_list_index`)
+    - Νέες διατυπώσεις Python 3.10-3.14: `expected ':'`, `'(' was never closed`, `unmatched ')'`, `unterminated string literal`, `expected an indented block after...`
+    - `UnboundLocalError`, `fstring_syntax`, υποδείξεις `Did you mean...?`
+    - `ModuleNotFoundError: No module named 'Tkinter'` (υπόδειξη για πεζό `tkinter`) και `_tkinter` (υπόδειξη πακέτου `python3-tk` για Linux)
+    - Κανόνας `greek_names` με προσαρμογή μηνύματος ανάλογα με τη ρύθμιση (`warn` vs `error`).
+- `tests/errorHelp.test.js`:
+  - Πλήρως επικαιροποιημένο suite με 33 tests για Python 3.
+- `tests/test_runner.py`:
+  - Προσθήκη tests για τον checker με `greek_names: 'warn'`, `'allow'` και `'error'`.
+- **Corpus σφαλμάτων:**
+  - Δημιουργία του φακέλου `tests/errors/` με 63 αυτόνομα αρχεία `.py` (ένα ανά κανόνα σφάλματος), με πρώτη γραμμή `# rule: <id>`. Ελέγχθηκαν όλα επιτυχώς μέσω του runner της Python 3.
+
+**Πώς ελέγχθηκε:**
+- `npm test`: Όλα τα 54 JS unit tests (33 errorHelp, 11 classroom, 6 pythonProcess, 4 recall) + 31 Python runner tests πέρασαν 100%.
+- Επαλήθευση του συνόλου του corpus (63/63 κανόνες) με εκτέλεση μέσω του runner σε Python 3.14.
+
+**Αποκλίσεις από το σχέδιο και γιατί:**
+- Καμία.
+
+**Tests που μένουν σπασμένα (και σε ποια φάση διορθώνονται):**
+- Κανένα.
+
+**Για έλεγχο από τον χρήστη:**
+- Έλεγχος του διαλόγου Ρυθμίσεων με την επιλογή «Ελληνικά ονόματα μεταβλητών».
+- Έλεγχος των markers στον Monaco editor όταν γράφονται ελληνικά ονόματα μεταβλητών με τη ρύθμιση στο `warn` και στο `error`.
 
 ## Ανοιχτά ερωτήματα
 

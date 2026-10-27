@@ -369,7 +369,7 @@
       clearTimeout(tab.checkTimer);
       tab.checkTimer = setTimeout(async () => {
         if (tab.model.isDisposed()) return;
-        ES().setCharMarkers(this.monaco, tab.model);
+        ES().setCharMarkers(this.monaco, tab.model, this.settings);
         if (!this.settings.liveCheck) { ES().setSyntaxMarkers(this.monaco, tab.model, null); return; }
         const version = tab.model.getVersionId();
         const res = await api.check(tab.model.getValue());
@@ -690,7 +690,7 @@
       if (!repl) this.runHadError = true;
       const loc = err.location || {};
       const tab = repl ? null : (this.tabForFile(loc.filename) || (samePath(loc.filename, this.runTab && this.runTab.path) ? this.runTab : null));
-      const ctx = { lines: tab ? tab.model.getLinesContent() : (repl && loc.line ? [loc.line] : []) };
+      const ctx = { lines: tab ? tab.model.getLinesContent() : (repl && loc.line ? [loc.line] : []), settings: this.settings };
       const help = root.ErrorHelp.explain(err, ctx);
       this.shell.writeError(err, help.title);
       this.assistant.show(help, repl ? null : err);
@@ -1091,7 +1091,7 @@
       if ('showVariables' in patch || 'showAssistant' in patch || 'showRecall' in patch) this.applyPanels();
       if ('fontSize' in patch) this.applyFont();
       if ('runSpeed' in patch) this.applySpeed();
-      if ('liveCheck' in patch) this.tabs.forEach((t) => this.scheduleCheck(t, 10));
+      if ('liveCheck' in patch || 'greekNames' in patch) this.tabs.forEach((t) => this.scheduleCheck(t, 10));
     },
 
     setFont(size) {
@@ -1134,7 +1134,7 @@
       $('#set-python').value = s.pythonPath || '';
       $('#set-font').value = s.fontSize;
       $('#set-theme').value = s.theme;
-      $('#set-encoding').value = s.stringEncoding;
+      if ($('#set-greek-names')) $('#set-greek-names').value = s.greekNames || 'warn';
       $('#set-save').checked = !!s.saveBeforeRun;
       $('#set-live').checked = !!s.liveCheck;
       const status = $('#set-python-status');
@@ -1172,14 +1172,13 @@
           pythonPath: $('#set-python').value.trim(),
           fontSize: Math.max(10, Math.min(32, Number($('#set-font').value) || 16)),
           theme: $('#set-theme').value,
+          greekNames: $('#set-greek-names') ? $('#set-greek-names').value : (this.settings.greekNames || 'warn'),
           saveBeforeRun: $('#set-save').checked,
           liveCheck: $('#set-live').checked,
         };
         const pyChanged = patch.pythonPath !== this.settings.pythonPath;
-        const enc = $('#set-encoding').value;
         await this.updateSettings(patch);
-        if (enc !== this.settings.stringEncoding) await this.setEncoding(enc);
-        else if (pyChanged && !this.running) this.startShell();
+        if (pyChanged && !this.running) this.startShell();
         if (pyChanged) this.checkPython();
       };
     },

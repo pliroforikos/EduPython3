@@ -3,15 +3,44 @@
 Διαβάζει {"id", "source", "encoding"} ανά γραμμή και απαντά
 {"id", "ok"} ή {"id", "ok": false, "exc_type", "message", "lineno", "col", "end_col", "line"}.
 """
+import io
+import json
 import os
 import sys
-import json
+import tokenize
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _epal_util as U  # noqa: E402
 
 
-def check(source, default_enc='utf-8'):
+def _has_greek(s):
+    return any(('\u0370' <= c <= '\u03ff') or ('\u1f00' <= c <= '\u1fff') for c in s)
+
+
+def check_greek_names(source):
+    try:
+        tokens = tokenize.tokenize(io.BytesIO(source.encode('utf-8')).readline)
+        for tok in tokens:
+            if tok.type == tokenize.NAME and _has_greek(tok.string):
+                return {
+                    'ok': False,
+                    'exc_type': 'SyntaxError',
+                    'lineno': tok.start[0],
+                    'col': tok.start[1],
+                    'end_col': tok.end[1],
+                    'line': tok.line.rstrip('\r\n'),
+                    'message': f"invalid character in identifier (ελληνικά στο όνομα '{tok.string}')",
+                }
+    except Exception:
+        pass
+    return None
+
+
+def check(source, default_enc='utf-8', greek_names='warn'):
+    if greek_names == 'error':
+        err = check_greek_names(source)
+        if err:
+            return err
     try:
         U.compile_source(source, '<editor>', 'exec')
     except SyntaxError as e:
@@ -38,7 +67,7 @@ def main():
             msg = json.loads(line)
         except ValueError:
             continue
-        result = check(msg.get('source', ''), msg.get('encoding') or 'utf-8')
+        result = check(msg.get('source', ''), msg.get('encoding') or 'utf-8', msg.get('greekNames') or 'warn')
         result['id'] = msg.get('id')
         out.write(json.dumps(result, ensure_ascii=False) + '\n')
         out.flush()

@@ -1,16 +1,16 @@
-/* Ρύθμιση του Monaco: γλώσσα Python 2, θέματα τύπου IDLE, autocomplete, hovers, σήμανση λαθών. */
+/* Ρύθμιση του Monaco: γλώσσα Python 3, θέματα τύπου IDLE, autocomplete, hovers, σήμανση λαθών. */
 (function (root) {
   'use strict';
   const D = root.PyDocs;
-  const LANG = 'python2';
+  const LANG = 'python3';
 
   const EXCEPTIONS = ['Exception', 'ValueError', 'TypeError', 'NameError', 'IndexError', 'KeyError',
-    'ZeroDivisionError', 'IOError', 'OSError', 'ImportError', 'AttributeError', 'RuntimeError',
+    'ZeroDivisionError', 'OSError', 'ImportError', 'AttributeError', 'RuntimeError',
     'StopIteration', 'EOFError', 'KeyboardInterrupt', 'SyntaxError', 'IndentationError', 'AssertionError',
     'OverflowError', 'UnicodeError', 'self'];
 
   function registerLanguage(monaco) {
-    monaco.languages.register({ id: LANG, extensions: ['.py', '.pyw'], aliases: ['Python 2.7'] });
+    monaco.languages.register({ id: LANG, extensions: ['.py', '.pyw'], aliases: ['Python 3', 'python3'] });
 
     monaco.languages.setLanguageConfiguration(LANG, {
       comments: { lineComment: '#' },
@@ -25,7 +25,7 @@
       ],
       onEnterRules: [
         {
-          beforeText: /^\s*(?:def|class|for|if|elif|else|while|try|with|finally|except)\b.*:\s*(#.*)?$/,
+          beforeText: /^\s*(?:def|class|for|if|elif|else|while|try|with|finally|except|async|match|case)\b.*:\s*(#.*)?$/,
           action: { indentAction: monaco.languages.IndentAction.Indent },
         },
         {
@@ -49,30 +49,31 @@
       ],
       tokenizer: {
         root: [
-          [/^(\s*)(def|class)(\s+)([a-zA-Z_]\w*)/, ['white', 'keyword', 'white', 'entity.name.function']],
+          [/^(\s*)(def|class)(\s+)([a-zA-Z_\u0370-\u03ff\u1f00-\u1fff][\w\u0370-\u03ff\u1f00-\u1fff]*)/, ['white', 'keyword', 'white', 'entity.name.function']],
           { include: '@whitespace' },
           { include: '@numbers' },
           { include: '@strings' },
           [/[,:;.]/, 'delimiter'],
           [/[{}[\]()]/, '@brackets'],
-          [/@[a-zA-Z_]\w*/, 'tag'],
-          [/[a-zA-Z_]\w*/, {
+          [/@[a-zA-Z_\u0370-\u03ff\u1f00-\u1fff][\w\u0370-\u03ff\u1f00-\u1fff]*/, 'tag'],
+          [/[a-zA-Z_\u0370-\u03ff\u1f00-\u1fff][\w\u0370-\u03ff\u1f00-\u1fff]*/, {
             cases: { '@keywords': 'keyword', '@constants': 'keyword.constant', '@builtins': 'predefined', '@default': 'identifier' },
           }],
-          [/[Ͱ-Ͽἀ-῿]+/, 'invalid'],
           [/[“”‘’–—«»;]/, 'invalid'],
           [/[+\-*/%=<>!&|^~]+/, 'operator'],
         ],
         whitespace: [[/\s+/, 'white'], [/#.*$/, 'comment']],
         numbers: [
-          [/0[xX][0-9a-fA-F]+[lL]?/, 'number.hex'],
-          [/(\d*\.)?\d+([eE][+-]?\d+)?[jJ]?[lL]?/, 'number'],
+          [/0[xX][0-9a-fA-F_]+/, 'number.hex'],
+          [/0[bB][01_]+/, 'number.binary'],
+          [/0[oO][0-7_]+/, 'number.octal'],
+          [/(\d[\d_]*\.)?[\d_]+([eE][+-]?[\d_]+)?[jJ]?/, 'number'],
         ],
         strings: [
-          [/[uUbB]?[rR]?'''/, 'string', '@tripleSingle'],
-          [/[uUbB]?[rR]?"""/, 'string', '@tripleDouble'],
-          [/[uUbB]?[rR]?'/, 'string', '@single'],
-          [/[uUbB]?[rR]?"/, 'string', '@double'],
+          [/[fFrRuUbB]{0,2}'''/, 'string', '@tripleSingle'],
+          [/[fFrRuUbB]{0,2}"""/, 'string', '@tripleDouble'],
+          [/[fFrRuUbB]{0,2}'/, 'string', '@single'],
+          [/[fFrRuUbB]{0,2}"/, 'string', '@double'],
         ],
         tripleSingle: [[/[^\\']+/, 'string'], [/\\./, 'string.escape'], [/'''/, 'string', '@pop'], [/'/, 'string']],
         tripleDouble: [[/[^\\"]+/, 'string'], [/\\./, 'string.escape'], [/"""/, 'string', '@pop'], [/"/, 'string']],
@@ -194,7 +195,7 @@
         // μετά από import / from
         if (/^\s*(import|from)\s+\w*$/.test(line)) {
           return {
-            suggestions: Object.keys(D.MODULES).filter((m) => !m.includes('.')).concat(['Tkinter', 'datetime', 'copy'])
+            suggestions: Object.keys(D.MODULES).filter((m) => !m.includes('.')).concat(['tkinter', 'datetime', 'copy'])
               .filter((v, i, a) => a.indexOf(v) === i)
               .map((m) => ({ label: m, kind: K.Module, insertText: m, range })),
           };
@@ -362,15 +363,38 @@
     monaco.editor.setModelMarkers(model, 'syntax', markers);
   }
 
-  function setCharMarkers(monaco, model) {
+  function setCharMarkers(monaco, model, settings) {
     const found = root.ErrorHelp.suspiciousChars(model.getValue());
-    monaco.editor.setModelMarkers(model, 'chars', found.slice(0, 200).map((f) => ({
+    const markers = found.slice(0, 200).map((f) => ({
       severity: monaco.MarkerSeverity.Warning,
       message: `Ύποπτος χαρακτήρας: ${f.name}. Η Python χρειάζεται «${f.replacement || '(τίποτα)'}». Πάτησε Ctrl+. για διόρθωση.`,
       source: 'chars',
       code: f.replacement,
       startLineNumber: f.line, startColumn: f.col + 1, endLineNumber: f.line, endColumn: f.col + 2,
-    })));
+    }));
+
+    const policy = (settings && settings.greekNames) || 'warn';
+    if (policy !== 'allow' && root.ErrorHelp && root.ErrorHelp.findGreekIdentifiersWithRange) {
+      const lines = model.getLinesContent();
+      lines.forEach((line, i) => {
+        const idents = root.ErrorHelp.findGreekIdentifiersWithRange(line);
+        idents.forEach((id) => {
+          markers.push({
+            severity: policy === 'error' ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Info,
+            message: policy === 'error'
+              ? `Ελληνικά στο όνομα «${id.name}»: δεν επιτρέπονται ελληνικά στα ονόματα μεταβλητών.`
+              : `Ελληνικά στο όνομα «${id.name}»: επιτρέπεται στην Python 3, αλλά στις εξετάσεις γράφουμε λατινικά (πρόσεξε τη σύγχυση α/a, ο/o).`,
+            source: 'greekNames',
+            startLineNumber: i + 1,
+            startColumn: id.col + 1,
+            endLineNumber: i + 1,
+            endColumn: id.col + id.name.length + 1,
+          });
+        });
+      });
+    }
+
+    monaco.editor.setModelMarkers(model, 'chars', markers);
   }
 
   root.EditorSetup = {

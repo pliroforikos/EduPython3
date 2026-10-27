@@ -324,7 +324,7 @@ class Checker {
     return true;
   }
 
-  check(source, encoding) {
+  check(source, encoding, greekNames) {
     return new Promise((resolve) => {
       if (!this._ensure()) return resolve(null);
       const id = this.nextId++;
@@ -332,7 +332,7 @@ class Checker {
         if (this.pending.delete(id)) resolve(null);
       }, 4000);
       this.pending.set(id, (r) => { clearTimeout(timer); resolve(r); });
-      this.proc.stdin.write(JSON.stringify({ id, source, encoding }) + '\n');
+      this.proc.stdin.write(JSON.stringify({ id, source, encoding, greekNames }) + '\n');
     });
   }
 
