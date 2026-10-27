@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; worker-src 'self' blob: data:">
+  <title>Τάξη – Python 2.7 ΕΠΑΛ</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="teacher.css">
+</head>
+<body class="theme-light teacher">
+  <!-- Έναρξη -->
+  <section id="t-start">
+    <form id="t-start-form">
+      <h1>Λειτουργία καθηγητή</h1>
+      <p>Βλέπεις ζωντανά τον κώδικα των μαθητών που συνδέονται στην τάξη σου και τα <b>✋ σηκωμένα χέρια</b>.
+        Με την <b>📺 Παρουσίαση</b> οι μαθητές βλέπουν στη δική τους οθόνη τον κώδικα που γράφεις και τρέχεις.</p>
+      <label class="field">Όνομα καθηγητή
+        <input type="text" id="t-name" maxlength="80" spellcheck="false" required>
+      </label>
+      <label class="field">Εργαστήριο / τμήμα <small>(προαιρετικό)</small>
+        <input type="text" id="t-room" maxlength="80" spellcheck="false" placeholder="π.χ. Εργαστήριο 1">
+      </label>
+      <div class="buttons"><button type="submit" class="primary">Έναρξη τάξης</button></div>
+      <p id="t-start-error" class="bad-text"></p>
+      <details>
+        <summary>Πρώτη φορά; Πώς βρίσκουν οι μαθητές τον υπολογιστή μου</summary>
+        <ol>
+          <li>Πάτησε <b>Έναρξη τάξης</b> και μετά <b>Εξαγωγή classroom.json</b>.</li>
+          <li>Ο διαχειριστής αντιγράφει το αρχείο σε κάθε υπολογιστή μαθητή, στον φάκελο
+            <code>C:\ProgramData\Python2-EPAL\</code> (Linux: <code>/etc/python2-epal/</code>).
+            Οι μαθητές δεν μπορούν να το αλλάξουν, και έτσι συνδέονται <b>μόνο</b> σε αυτόν τον υπολογιστή.</li>
+          <li>Στην αρχή της ώρας οι μαθητές πατούν <b>Τάξη → Σύνδεση στην τάξη</b> και γράφουν το PIN που δείχνει η οθόνη σου.</li>
+        </ol>
+        <p class="muted">Τα Windows μπορεί να ζητήσουν άδεια από το Τείχος προστασίας την πρώτη φορά (θύρες TCP 47800 και UDP 47801).
+          Επίτρεψε τη σύνδεση στα ιδιωτικά δίκτυα / δίκτυα τομέα.</p>
+      </details>
+    </form>
+  </section>
+
+  <!-- Τάξη -->
+  <section id="t-class" hidden>
+    <header id="t-head">
+      <div class="t-title">
+        <b id="t-title-name"></b>
+        <span id="t-title-room" class="muted"></span>
+      </div>
+      <div class="t-pin" title="Οι μαθητές γράφουν αυτό το PIN στο «Τάξη → Σύνδεση στην τάξη»">
+        <span class="muted">PIN</span><b id="t-pin"></b>
+        <button id="t-newpin" class="mini" title="Νέο PIN (όσοι είναι ήδη συνδεδεμένοι μένουν)">↻</button>
+      </div>
+      <div id="t-counts" class="t-counts"></div>
+      <div class="t-present" id="t-present">
+        <button id="t-present-btn" title="Οι μαθητές βλέπουν στην οθόνη τους την ενεργή καρτέλα του κύριου παραθύρου σου και το Shell, ζωντανά">📺 Παρουσίαση</button>
+        <label class="t-check" title="Το πάνελ της παρουσίασης δεν κρύβεται και ο editor των μαθητών κλειδώνει μέχρι να το βγάλεις">
+          <input type="checkbox" id="t-present-lock"> 🔒 Όλοι εδώ</label>
+        <label class="t-check" title="Οι μαθητές μπορούν να αντιγράψουν τον κώδικα (Ctrl+C ή «Αντιγραφή σε νέα καρτέλα»)">
+          <input type="checkbox" id="t-present-copy" checked> 📋 Αντιγραφή</label>
+      </div>
+      <span class="spacer"></span>
+      <input type="search" id="t-filter" placeholder="Αναζήτηση μαθητή…" spellcheck="false">
+      <button id="t-export" title="Το αρχείο που χρειάζονται οι υπολογιστές των μαθητών για να εμπιστεύονται αυτόν τον υπολογιστή">Εξαγωγή classroom.json…</button>
+      <button id="t-info" class="icon" title="Στοιχεία σύνδεσης">ⓘ</button>
+    </header>
+    <div id="t-body">
+      <div id="t-grid"></div>
+      <div id="t-empty" class="muted">
+        <p>Κανένας μαθητής ακόμα.</p>
+        <p>Οι μαθητές πατούν <b>Τάξη → Σύνδεση στην τάξη</b> και γράφουν το PIN <b class="t-pin-inline"></b>.</p>
+      </div>
+      <aside id="t-detail" hidden>
+        <div class="t-detail-head">
+          <span class="t-detail-name" id="t-detail-name"></span>
+          <span class="muted" id="t-detail-file"></span>
+          <span class="spacer"></span>
+          <div class="t-zoom" title="Μέγεθος γραμμάτων (Ctrl − / Ctrl + / Ctrl 0, ή Ctrl + ροδάκι)">
+            <button id="t-font-down" class="mini" title="Μικρότερα γράμματα (Ctrl −)">A−</button>
+            <button id="t-font-size" class="mini t-font-size" title="Αρχικό μέγεθος (Ctrl 0)"></button>
+            <button id="t-font-up" class="mini" title="Μεγαλύτερα γράμματα (Ctrl +)">A+</button>
+          </div>
+          <button id="t-wrap" class="mini t-wrap" title="Οι μεγάλες γραμμές συνεχίζουν από κάτω αντί να κόβονται">↩ Αναδίπλωση</button>
+          <button id="t-detail-lower" class="hand-btn" hidden>✋ Κατέβασε το χέρι</button>
+          <button id="t-detail-close" class="mini" title="Κλείσιμο (Esc)">×</button>
+        </div>
+        <div id="t-detail-errors"></div>
+        <div id="t-editor"></div>
+      </aside>
+    </div>
+  </section>
+
+  <dialog id="t-dlg-info">
+    <form method="dialog">
+      <h2>Στοιχεία σύνδεσης</h2>
+      <p>Διευθύνσεις αυτού του υπολογιστή: <b id="t-info-ip"></b> · θύρα TCP <b id="t-info-port"></b></p>
+      <p>Αποτύπωμα κλειδιού (πρέπει να υπάρχει στο classroom.json των μαθητών):</p>
+      <p><code id="t-info-fp" class="t-fp"></code></p>
+      <p class="muted">Η σύνδεση με τους μαθητές είναι κρυπτογραφημένη (TLS). Ο υπολογιστής ενός μαθητή στέλνει κώδικα μόνο αν ο server
+        αποδείξει ότι έχει το κλειδί με αυτό το αποτύπωμα.</p>
+      <div class="buttons"><button value="ok" class="primary">Εντάξει</button></div>
+    </form>
+  </dialog>
+
+  <script src="../../node_modules/monaco-editor/min/vs/loader.js"></script>
+  <script src="pydocs.js"></script>
+  <script src="errorHelp.js"></script>
+  <script src="editor.js"></script>
+  <script src="teacher.js"></script>
+  <script>
+    require.config({ paths: { vs: '../../node_modules/monaco-editor/min/vs' } });
+    require(['vs/editor/editor.main'], function () { Teacher.init(window.monaco); });
+  </script>
+</body>
+</html>

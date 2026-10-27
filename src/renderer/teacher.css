@@ -1,0 +1,116 @@
+/* Οθόνη καθηγητή (λειτουργία «Τάξη»). Χρησιμοποιεί τις μεταβλητές χρωμάτων του styles.css. */
+body.teacher { user-select: text; }
+body.teacher button { cursor: pointer; }
+body.teacher .mini {
+  border: 1px solid transparent; background: transparent; border-radius: 6px; padding: 2px 8px; color: var(--muted);
+}
+body.teacher .mini:hover { background: var(--tab-hover); color: var(--fg); }
+body.teacher header button, #t-start button {
+  border: 1px solid var(--border); background: var(--bg); border-radius: 7px; padding: 6px 12px;
+}
+body.teacher header button:hover { border-color: var(--accent); }
+body.teacher button.primary, #t-start button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; padding: 8px 18px; }
+body.teacher input[type=text], body.teacher input[type=search] {
+  font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px;
+}
+body.teacher input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+/* ------------------------------------------------------------------ έναρξη */
+#t-start { flex: 1; overflow: auto; display: flex; align-items: flex-start; justify-content: center; padding: 6vh 16px; }
+#t-start form { width: min(560px, 100%); }
+#t-start h1 { font-size: 22px; margin: 0 0 8px; }
+#t-start p, #t-start li { line-height: 1.55; }
+#t-start details { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 12px; }
+#t-start summary { cursor: pointer; font-weight: 600; }
+
+/* ------------------------------------------------------------------ κεφαλίδα */
+#t-class { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+#t-class[hidden], #t-start[hidden] { display: none; }
+#t-head {
+  flex: none; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 8px 14px; background: var(--toolbar-bg); border-bottom: 1px solid var(--border);
+}
+.t-title b { font-size: 16px; }
+.t-title .muted { margin-left: 6px; }
+.t-pin { display: flex; align-items: center; gap: 8px; padding: 2px 6px 2px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg); }
+.t-pin b { font-family: var(--font-mono); font-size: 26px; letter-spacing: 5px; color: var(--accent); }
+.t-counts { display: flex; gap: 10px; font-weight: 600; }
+.t-counts .hands { color: var(--hint-fg); background: var(--hint-bg); border: 1px solid var(--hint-border); border-radius: 10px; padding: 0 8px; }
+#t-filter { width: 200px; }
+.t-present { display: flex; align-items: center; gap: 10px; }
+.t-present .t-check { display: none; align-items: center; gap: 4px; white-space: nowrap; cursor: pointer; }
+.t-present.on .t-check { display: flex; }
+body.teacher .t-present.on #t-present-btn { background: var(--run); border-color: var(--run); color: #fff; font-weight: 600; }
+.t-fp { word-break: break-all; user-select: all; }
+
+/* ------------------------------------------------------------------ κάρτες */
+#t-body { flex: 1; display: flex; min-height: 0; position: relative; }
+#t-grid {
+  flex: 1; overflow: auto; padding: 14px; align-content: start;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;
+}
+body.detail-open #t-grid { flex: 0 0 38%; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+#t-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; font-size: 15px; }
+#t-empty[hidden] { display: none; }
+#t-empty p { margin: 4px; }
+.t-pin-inline { font-family: var(--font-mono); color: var(--accent); letter-spacing: 2px; }
+
+.card {
+  display: flex; flex-direction: column; min-width: 0;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06); cursor: pointer; overflow: hidden;
+}
+.card[hidden] { display: none; }
+.card:hover { border-color: var(--accent); }
+.card.selected { outline: 2px solid var(--accent); outline-offset: -1px; }
+.card.raised { border-color: var(--hint-border); box-shadow: 0 0 0 3px var(--hint-bg); }
+.card.offline { opacity: 0.55; }
+.card-head { display: flex; align-items: center; gap: 7px; padding: 7px 8px 3px 10px; min-width: 0; }
+.card-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-host { font-size: 12px; white-space: nowrap; }
+.dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--run); }
+.card.offline .dot { background: var(--muted); }
+.card .remove { opacity: 0; }
+.card:hover .remove { opacity: 1; }
+.card-meta { font-size: 12px; padding: 0 10px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-code {
+  margin: 0; padding: 4px 0; height: calc(12 * 1.45em + 8px); overflow: hidden;
+  font-size: 11.5px; line-height: 1.45; background: var(--code-bg); border-top: 1px solid var(--border);
+  counter-reset: none; white-space: pre;
+}
+.card-code [data-line] { display: inline-block; min-width: 100%; padding-right: 8px; }
+.card-code [data-line]::before {
+  content: attr(data-line); display: inline-block; width: 3.2em; padding-right: 0.7em; text-align: right; color: var(--muted); opacity: 0.7;
+}
+.card-code [data-line].cur { background: var(--sel-row); }
+.card-code [data-line].err { background: var(--error-line); }
+.card-err { font-size: 12px; color: var(--err); padding: 0 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card.has-error .card-err { padding: 4px 10px 6px; }
+
+.hand-btn {
+  flex: none; font-size: 15px; line-height: 1; padding: 3px 8px; font-weight: 600;
+  border: 1px solid var(--hint-border) !important; background: var(--hint-bg) !important; color: var(--hint-fg); border-radius: 8px;
+}
+.hand-btn[hidden] { display: none; }
+.card .hand-btn { animation: hand-wave 1.6s ease-in-out infinite; }
+@keyframes hand-wave { 0%, 60%, 100% { transform: rotate(0); } 20% { transform: rotate(-14deg); } 40% { transform: rotate(10deg); } }
+
+/* ------------------------------------------------------------------ λεπτομέρειες */
+#t-detail { flex: 1; display: flex; flex-direction: column; min-width: 0; border-left: 1px solid var(--border); }
+#t-detail[hidden] { display: none; }
+.t-detail-head { flex: none; display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: var(--panel-head); border-bottom: 1px solid var(--border); }
+.t-detail-name { font-weight: 600; }
+.t-detail-head .mini { font-size: 18px; }
+#t-detail-errors { flex: none; color: var(--err); font-size: 13px; }
+#t-detail-errors div { padding: 4px 12px; background: var(--bad-bg); border-bottom: 1px solid var(--border); white-space: pre-wrap; }
+#t-editor { flex: 1; min-height: 0; }
+.student-line { background: var(--sel-row); }
+.student-caret { border-left: 2px solid var(--accent); margin-left: -1px; }
+.error-line { background: var(--error-line); }
+
+/* μέγεθος γραμμάτων και αναδίπλωση στην προβολή κώδικα */
+.t-zoom { display: inline-flex; align-items: center; gap: 2px; }
+.t-zoom .mini { font-size: 13px; font-weight: 600; min-width: 30px; }
+.t-zoom .t-font-size { font-weight: 400; color: var(--muted); min-width: 34px; }
+body.teacher .t-wrap { font-size: 13px; }
+body.teacher .t-wrap.on { background: var(--sel-row); color: var(--fg); border-color: var(--border); }

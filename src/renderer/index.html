@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; worker-src 'self' blob: data:">
+  <title>Python 2.7 ΕΠΑΛ</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="theme-light">
+  <div id="toolbar" role="toolbar">
+    <button data-cmd="new" class="file" title="Νέο πρόγραμμα (Ctrl+N)"><svg viewBox="0 0 24 24"><path d="M6 2h8l6 6v14H6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 2v6h6M13 12v6M10 15h6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>Νέο</span></button>
+    <button data-cmd="open" class="file" title="Άνοιγμα (Ctrl+O)"><svg viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Άνοιγμα</span></button>
+    <button data-cmd="save" class="file" title="Αποθήκευση (Ctrl+S)"><svg viewBox="0 0 24 24"><path d="M4 4h13l3 3v13H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 4v5h7V4M7 20v-6h10v6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>Αποθήκευση</span></button>
+    <div class="sep"></div>
+    <button data-cmd="run" class="run" title="Εκτέλεση προγράμματος (F5)"><svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z" fill="currentColor"/></svg><span>Εκτέλεση</span></button>
+    <button data-cmd="stop" class="stop" title="Διακοπή / Επανεκκίνηση (Ctrl+F2)"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor"/></svg><span>Διακοπή</span></button>
+    <div class="speed" title="Ταχύτητα εκτέλεσης. Με «Γραμμή γραμμή», «Αργή» και «Μέτρια» φαίνεται στον editor ποια γραμμή εκτελείται και στις Μεταβλητές πώς αλλάζουν οι τιμές.">
+      <svg viewBox="0 0 24 24"><path d="M3.5 17a8.5 8.5 0 1 1 17 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 17l4.5-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <div class="speed-slider">
+        <div class="speed-ticks"><i></i><i></i><i></i><i></i></div>
+        <input type="range" id="speed" min="0" max="3" step="1" aria-label="Ταχύτητα εκτέλεσης">
+      </div>
+      <span id="speed-label"></span>
+    </div>
+    <button data-cmd="step" id="btn-step" class="step" title="Εκτέλεση της επόμενης γραμμής (F10)" disabled><svg viewBox="0 0 24 24"><path d="M5 5l9 7-9 7z" fill="currentColor"/><rect x="16" y="5" width="2.6" height="14" rx="1" fill="currentColor"/></svg><span>Επόμενη</span></button>
+    <div class="sep"></div>
+    <button data-cmd="zoomOut" title="Μικρότερα γράμματα (Ctrl -)" class="icon-only"><span class="txt">A−</span></button>
+    <button data-cmd="zoomIn" title="Μεγαλύτερα γράμματα (Ctrl +)" class="icon-only"><span class="txt big">A+</span></button>
+    <button data-cmd="toggleTheme" title="Φωτεινό / σκοτεινό θέμα" class="icon-only"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button>
+    <div class="spacer"></div>
+    <button data-cmd="raiseHand" id="btn-hand" class="hand" title="Σηκώνω χέρι: ζητώ βοήθεια από τον καθηγητή (F9)"><span class="hand-icon">✋</span><span>Σηκώνω χέρι</span></button>
+    <button data-cmd="toggleVariables" title="Μεταβλητές (F6)" class="toggle" id="btn-vars"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 10h16M10 10v9" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>Μεταβλητές</span></button>
+    <button data-cmd="toggleAssistant" title="Βοηθός (F7)" class="toggle" id="btn-assist"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Βοηθός</span></button>
+    <button data-cmd="toggleRecall" title="Θέλω να θυμηθώ: αλγόριθμοι και εντολές (F8)" class="toggle" id="btn-recall"><svg viewBox="0 0 24 24"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Θέλω να θυμηθώ</span></button>
+    <button data-cmd="help" title="Οδηγός χρήσης (F1)" class="icon-only"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  </div>
+
+  <div id="main">
+    <div id="center">
+      <div id="tabs"></div>
+      <div id="editor-host"></div>
+      <div class="splitter h" id="split-shell" title="Σύρε για αλλαγή μεγέθους"></div>
+      <section id="shell-panel">
+        <div class="panel-head">
+          <span class="panel-title">Shell</span>
+          <span class="panel-sub" id="shell-sub"></span>
+          <span class="spacer"></span>
+          <button class="mini" data-cmd="clearShell" title="Καθαρισμός Shell">Καθαρισμός</button>
+        </div>
+        <div id="shell" class="mono" tabindex="-1"></div>
+      </section>
+      <!-- Ο καθηγητής παρουσιάζει: ο κώδικάς του και η έξοδός του, πάνω από τον editor του μαθητή -->
+      <section id="present-panel" hidden>
+        <div class="panel-head present-head">
+          <span class="present-title">📺 Ο καθηγητής παρουσιάζει</span>
+          <span class="panel-sub" id="pr-file"></span>
+          <span class="present-lock" id="pr-lock" hidden title="Ο καθηγητής ζήτησε να κοιτάτε όλοι τον κώδικά του. Ο δικός σου κώδικας ξεκλειδώνει μόλις τελειώσει.">🔒 Όλοι εδώ</span>
+          <span class="spacer"></span>
+          <div class="pr-zoom" title="Μέγεθος γραμμάτων (ή Ctrl + ροδάκι)">
+            <button id="pr-font-down" class="mini" title="Μικρότερα γράμματα">A−</button>
+            <button id="pr-font-size" class="mini" title="Αρχικό μέγεθος"></button>
+            <button id="pr-font-up" class="mini" title="Μεγαλύτερα γράμματα">A+</button>
+          </div>
+          <button id="pr-copy" class="mini" title="Ο κώδικας του καθηγητή σε νέα καρτέλα, για να τον τρέξεις ή να τον αλλάξεις">Αντιγραφή σε νέα καρτέλα</button>
+          <button id="pr-hide" class="mini" title="Πίσω στον κώδικά μου (η παρουσίαση ξανανοίγει από τη γραμμή κατάστασης)">Απόκρυψη</button>
+        </div>
+        <div id="pr-editor"></div>
+        <div class="panel-head"><span class="panel-title">Shell του καθηγητή</span></div>
+        <div id="pr-shell" class="mono"></div>
+      </section>
+    </div>
+    <div class="splitter v" id="split-side"></div>
+    <aside id="side">
+      <section id="vars-panel" class="side-panel">
+        <div class="panel-head"><span class="panel-title">Μεταβλητές</span><span class="spacer"></span><button class="mini close" data-cmd="toggleVariables" title="Κλείσιμο">×</button></div>
+        <div id="vars" class="panel-body"></div>
+      </section>
+      <div class="splitter h" id="split-assist"></div>
+      <section id="assist-panel" class="side-panel">
+        <div class="panel-head"><span class="panel-title">Βοηθός</span><span class="spacer"></span><button class="mini close" data-cmd="toggleAssistant" title="Κλείσιμο">×</button></div>
+        <div id="assistant" class="panel-body"></div>
+      </section>
+      <div class="splitter h" id="split-recall"></div>
+      <section id="recall-panel" class="side-panel">
+        <div class="panel-head"><span class="panel-title">Θέλω να θυμηθώ</span><span class="spacer"></span><button class="mini close" data-cmd="toggleRecall" title="Κλείσιμο">×</button></div>
+        <div id="recall" class="panel-body"></div>
+      </section>
+    </aside>
+  </div>
+
+  <footer id="statusbar">
+    <span id="st-state" class="st-state idle">● Έτοιμο</span>
+    <span id="st-file" class="st-file"></span>
+    <span class="spacer"></span>
+    <span id="st-present" class="st-class present" hidden></span>
+    <span id="st-watch" class="st-class present" hidden></span>
+    <span id="st-class" class="st-class" hidden></span>
+    <span id="st-pos"></span>
+    <span id="st-enc" title="Κωδικοποίηση ελληνικών κατά την εκτέλεση"></span>
+    <span id="st-py"></span>
+  </footer>
+
+  <!-- Ρυθμίσεις -->
+  <dialog id="dlg-settings">
+    <form method="dialog">
+      <h2>Ρυθμίσεις</h2>
+      <label class="field">Python 2.7 (python.exe ή python2.7)
+        <div class="row">
+          <input type="text" id="set-python" spellcheck="false">
+          <button type="button" id="set-python-browse">Αναζήτηση…</button>
+          <button type="button" id="set-python-test">Έλεγχος</button>
+        </div>
+        <small id="set-python-status"></small>
+      </label>
+      <div class="grid2">
+        <label class="field">Μέγεθος γραμμάτων
+          <input type="number" id="set-font" min="10" max="32">
+        </label>
+        <label class="field">Θέμα
+          <select id="set-theme"><option value="light">Φωτεινό</option><option value="dark">Σκοτεινό</option></select>
+        </label>
+      </div>
+      <label class="field">Κωδικοποίηση ελληνικών κατά την εκτέλεση
+        <select id="set-encoding">
+          <option value="cp1253">cp1253: όπως το IDLE στα ελληνικά Windows (len('Αθήνα') = 5)</option>
+          <option value="utf-8">utf-8 (len('Αθήνα') = 10)</option>
+        </select>
+        <small>Αν το πρόγραμμα έχει δήλωση <code># -*- coding: … -*-</code> ή χρησιμοποιεί Tkinter, προτιμάται αυτόματα η κατάλληλη.</small>
+      </label>
+      <label class="check"><input type="checkbox" id="set-save"> Αυτόματη αποθήκευση πριν την εκτέλεση</label>
+      <label class="check"><input type="checkbox" id="set-live"> Έλεγχος σύνταξης καθώς γράφω</label>
+      <div class="buttons">
+        <button value="cancel">Άκυρο</button>
+        <button value="ok" class="primary">Αποθήκευση</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Τάξη -->
+  <dialog id="dlg-classroom">
+    <form method="dialog">
+      <h2>Σύνδεση στην τάξη</h2>
+      <div class="cls-ready">
+        <p>Ο καθηγητής θα βλέπει <b>ζωντανά τον κώδικα που γράφεις</b> και θα μπορείς να <b>σηκώνεις χέρι ✋</b>
+          (<kbd>F9</kbd>) όταν θέλεις βοήθεια. Όσο είσαι συνδεδεμένος, αυτό φαίνεται κάτω δεξιά.</p>
+        <p id="cls-teachers" class="muted"></p>
+        <label class="field">Το όνομά σου
+          <input type="text" id="cls-name" maxlength="80" spellcheck="false">
+        </label>
+        <label class="field">PIN της τάξης
+          <input type="text" id="cls-pin" maxlength="4" inputmode="numeric" autocomplete="off" spellcheck="false">
+          <small>Τα 4 ψηφία που δείχνει η οθόνη του καθηγητή.</small>
+        </label>
+        <small id="cls-error" class="bad-text"></small>
+      </div>
+      <p class="cls-missing" id="cls-missing"></p>
+      <div class="buttons">
+        <button value="cancel" id="cls-cancel">Άκυρο</button>
+        <button value="ok" class="primary cls-ready">Σύνδεση</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Βοήθεια -->
+  <dialog id="dlg-help" class="wide">
+    <form method="dialog">
+      <h2>Οδηγός χρήσης</h2>
+      <div class="help-body">
+        <h3>Βασικά</h3>
+        <ol>
+          <li>Γράψε το πρόγραμμα στον <b>editor</b> (πάνω).</li>
+          <li>Πάτησε <kbd>F5</kbd> ή <b>▶ Εκτέλεση</b>. Το πρόγραμμα αποθηκεύεται και εκτελείται.</li>
+          <li>Η έξοδος (<code>print</code>) εμφανίζεται στο <b>Shell</b> (κάτω). Όταν το πρόγραμμα ζητά τιμή
+            (<code>raw_input</code>/<code>input</code>), γράψε στο Shell και πάτα <kbd>Enter</kbd>.</li>
+          <li>Για να σταματήσεις ένα πρόγραμμα που «κόλλησε» (π.χ. ατέρμονος βρόχος): <b>■ Διακοπή</b> ή <kbd>Ctrl</kbd>+<kbd>F2</kbd>.</li>
+        </ol>
+        <h3>Εκτέλεση βήμα-βήμα</h3>
+        <p>Με τον <b>ρυθμιστή ταχύτητας</b> δίπλα στο κουμπί <b>Διακοπή</b> (σύρε τη λαβή ή κάνε κλικ σε ένα σημάδι) διαλέγεις πόσο γρήγορα εκτελείται το πρόγραμμα:</p>
+        <ul>
+          <li><b>Γραμμή γραμμή</b>: το πρόγραμμα σταματά πριν από κάθε γραμμή· προχωράς με το κουμπί <b>Επόμενη</b> ή με <kbd>F10</kbd>.</li>
+          <li><b>Αργή</b> / <b>Μέτρια</b>: το πρόγραμμα προχωρά μόνο του, μία γραμμή κάθε 1 ή 0,4 δευτερόλεπτα.</li>
+          <li><b>Κανονική</b>: κανονική εκτέλεση, χωρίς καθυστέρηση.</li>
+        </ul>
+        <p>Η γραμμή που θα εκτελεστεί <b>τώρα</b> φωτίζεται στον editor με ➜, και στις <b>Μεταβλητές</b> φαίνονται οι τιμές να αλλάζουν
+          (μέσα σε συνάρτηση, και οι τοπικές της μεταβλητές). Η ταχύτητα αλλάζει και ενώ τρέχει το πρόγραμμα: π.χ. από «Γραμμή γραμμή»
+          σε «Κανονική» για να ολοκληρωθεί γρήγορα.</p>
+        <h3>Shell (&gt;&gt;&gt;)</h3>
+        <p>Μετά την εκτέλεση, στο <code>&gt;&gt;&gt;</code> μπορείς να γράψεις εντολές Python και να δεις αμέσως το αποτέλεσμα.
+          Οι μεταβλητές του προγράμματος είναι διαθέσιμες (π.χ. γράψε <code>lista</code> για να δεις την τιμή της).
+          Με τα βέλη <kbd>↑</kbd>/<kbd>↓</kbd> ξαναβρίσκεις προηγούμενες εντολές.</p>
+        <h3>Λάθη</h3>
+        <p>Όταν υπάρχει λάθος, η γραμμή του κοκκινίζει στον editor και ο <b>Βοηθός</b> (δεξιά) εξηγεί στα ελληνικά τι σημαίνει
+          και πώς να το διορθώσεις. Τα μπλε ονόματα αρχείων στο μήνυμα λάθους πηγαίνουν στη γραμμή με ένα κλικ.
+          Τα λάθη σύνταξης υπογραμμίζονται με κόκκινο <b>καθώς γράφεις</b>, πριν καν τρέξεις το πρόγραμμα.</p>
+        <h3>Ελληνικά</h3>
+        <p>Δεν χρειάζεται η γραμμή <code># -*- coding: … -*-</code>. Τα ελληνικά δουλεύουν κατευθείαν, όπως στο IDLE των
+          ελληνικών Windows (cp1253): <code>len('Αθήνα')</code> → 5. Τα ονόματα μεταβλητών όμως γράφονται μόνο με λατινικούς χαρακτήρες.
+          Αν αντιγράψεις κώδικα από PDF, η εντολή <b>Επεξεργασία → Διόρθωση εισαγωγικών</b> διορθώνει τα “έξυπνα” εισαγωγικά.</p>
+        <h3>Θέλω να θυμηθώ</h3>
+        <p>Το κουμπί <b>Θέλω να θυμηθώ</b> (<kbd>F8</kbd>) ανοίγει δεξιά τους βασικούς αλγορίθμους και τις εντολές της ύλης:
+          ανάγνωση τιμών, εμφάνιση, συναρτήσεις, μέγιστο/ελάχιστο, πλήθος, άθροισμα, λίστες, αναζήτηση, ταξινόμηση, αρχεία, κλάσεις κ.ά.
+          Γράψε μια λέξη στην αναζήτηση για να βρεις γρήγορα ένα θέμα. Το <b>Στον editor</b> βάζει το παράδειγμα στη θέση του κέρσορα.
+          Το σήμα <b>Π</b> δείχνει ότι το θέμα έχει ζητηθεί στις Πανελλήνιες των ΕΠΑΛ.</p>
+        <h3>Αρχεία</h3>
+        <p>Τα αρχεία που ανοίγει το πρόγραμμά σου με <code>open('dedomena.txt')</code> ή οι βάσεις <code>sqlite3.connect('vasi.db')</code>
+          βρίσκονται <b>στον ίδιο φάκελο με το πρόγραμμα</b>. Τα νέα προγράμματα αποθηκεύονται από προεπιλογή στον φάκελο <code>Python2</code> μέσα στα <b>Έγγραφα</b>.</p>
+        <h3>Τάξη</h3>
+        <p>Στο εργαστήριο, από το μενού <b>Τάξη → Σύνδεση στην τάξη</b> (με το PIN που δείχνει ο καθηγητής) ο καθηγητής βλέπει
+          ζωντανά τον κώδικα που γράφεις. Όταν θέλεις βοήθεια, πάτησε <b>✋ Σηκώνω χέρι</b> ή <kbd>F9</kbd>· ξαναπάτησέ το για να το κατεβάσεις.
+          Όσο είσαι συνδεδεμένος, κάτω δεξιά γράφει <b>👁 … βλέπει τον κώδικά σου</b>· κλικ εκεί για αποσύνδεση.</p>
+        <h3>Συντομεύσεις</h3>
+        <table class="keys">
+          <tr><td><kbd>F5</kbd></td><td>Εκτέλεση</td><td><kbd>Ctrl</kbd>+<kbd>F2</kbd></td><td>Διακοπή</td></tr>
+          <tr><td><kbd>F10</kbd></td><td>Επόμενη γραμμή (βήμα-βήμα)</td><td><kbd>F9</kbd></td><td>Σηκώνω χέρι (Τάξη)</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Αποθήκευση</td><td><kbd>Ctrl</kbd>+<kbd>N</kbd> / <kbd>O</kbd></td><td>Νέο / Άνοιγμα</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>/</kbd></td><td>Σχόλιο σε γραμμές</td><td><kbd>Ctrl</kbd>+<kbd>F</kbd> / <kbd>H</kbd></td><td>Εύρεση / Αντικατάσταση</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>Space</kbd></td><td>Προτάσεις (autocomplete)</td><td><kbd>Ctrl</kbd>+<kbd>.</kbd></td><td>Γρήγορη διόρθωση</td></tr>
+          <tr><td><kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd></td><td>Μετακίνηση γραμμής</td><td><kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd></td><td>Αντιγραφή γραμμής</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Επιλογή επόμενης ίδιας λέξης</td><td><kbd>Alt</kbd>+κλικ</td><td>Πολλαπλοί κέρσορες</td></tr>
+          <tr><td><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Εσοχή / αφαίρεση εσοχής</td><td><kbd>Ctrl</kbd>+<kbd>G</kbd></td><td>Μετάβαση σε γραμμή</td></tr>
+          <tr><td><kbd>Ctrl</kbd>+<kbd>+</kbd>/<kbd>−</kbd></td><td>Μέγεθος γραμμάτων</td><td><kbd>F6</kbd> / <kbd>F7</kbd> / <kbd>F8</kbd></td><td>Μεταβλητές / Βοηθός / Θέλω να θυμηθώ</td></tr>
+        </table>
+      </div>
+      <div class="buttons"><button value="ok" class="primary">Εντάξει</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-about">
+    <form method="dialog">
+      <h2>Python 2.7 ΕΠΑΛ</h2>
+      <p>Περιβάλλον προγραμματισμού Python 2.7 για τους μαθητές του Τομέα Πληροφορικής των ΕΠΑΛ,
+        εμπνευσμένο από τον <b>Thonny</b>. Υλοποιήθηκε με βάση τις «Σημειώσεις Μαθητή» του μαθήματος
+        «Προγραμματισμός Υπολογιστών».</p>
+      <p class="author">Δημιουργός: <b>Λέων Προκόπης</b><br>
+        <span class="muted">Καθηγητής Πληροφορικής ΠΕ86</span></p>
+      <p>© 2026 Λέων Προκόπης. Άδεια <b>CC BY-NC-SA 4.0</b>: ελεύθερη χρήση, τροποποίηση και διανομή με αναφορά
+        στον δημιουργό, χωρίς εμπορική χρήση.<br>
+        <a href="https://github.com/pliroforikos/myPython2" target="_blank">github.com/pliroforikos/myPython2</a></p>
+      <p id="about-info" class="muted"></p>
+      <div class="buttons"><button value="ok" class="primary" autofocus>Εντάξει</button></div>
+    </form>
+  </dialog>
+
+  <script src="../../node_modules/monaco-editor/min/vs/loader.js"></script>
+  <script src="pydocs.js"></script>
+  <script src="errorHelp.js"></script>
+  <script src="editor.js"></script>
+  <script src="shell.js"></script>
+  <script src="panels.js"></script>
+  <script src="recall.js"></script>
+  <script src="present.js"></script>
+  <script src="app.js"></script>
+  <script>
+    require.config({ paths: { vs: '../../node_modules/monaco-editor/min/vs' } });
+    require(['vs/editor/editor.main'], function () { App.init(window.monaco); });
+  </script>
+</body>
+</html>

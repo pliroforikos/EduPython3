@@ -1,0 +1,603 @@
+/* ------------------------------------------------------------------ γραμματοσειρές */
+/* Windows πρώτα, μετά οι συνηθισμένες του Linux (Ubuntu, DejaVu, Liberation, Noto) */
+:root {
+  --font-ui: 'Segoe UI', system-ui, -apple-system, 'Ubuntu', 'Noto Sans', 'DejaVu Sans', sans-serif;
+  --font-mono: 'Cascadia Mono', Consolas, 'DejaVu Sans Mono', 'Ubuntu Mono', 'Liberation Mono', 'Courier New', monospace;
+}
+
+/* ------------------------------------------------------------------ θέματα */
+:root, body.theme-light {
+  --bg: #ffffff;
+  --fg: #1f2328;
+  --muted: #6a737d;
+  --border: #d9dde3;
+  --toolbar-bg: #f6f7f9;
+  --panel-head: #eef1f5;
+  --tabs-bg: #eceff3;
+  --tab-active: #ffffff;
+  --tab-hover: #e2e6ec;
+  --accent: #2f6fd6;
+  --run: #1f9d55;
+  --run-hover: #188a49;
+  --stop: #d93f3f;
+  --stop-hover: #bf3434;
+  --shell-bg: #ffffff;
+  --prompt: #8a8f98;
+  --command: #6a5acd;
+  --input: #0b5cad;
+  --repl-input: #1f2328;
+  --err: #c62828;
+  --info: #6a737d;
+  --hint-bg: #fff6d6;
+  --hint-border: #f0d77a;
+  --hint-fg: #6b4e00;
+  --sel-row: #e8f0fe;
+  --changed: #fff3bf;
+  --code-bg: #f1f3f5;
+  --ok-bg: #e9f8ef;
+  --bad-bg: #fdecec;
+  --good-bg: #e8f6ec;
+  --error-line: rgba(229, 72, 77, 0.14);
+  --exec-line: rgba(255, 196, 0, 0.32);
+  --exec-mark: #d49b00;
+  --present-sel: rgba(47, 111, 214, 0.25);
+  --scroll-thumb: #c9ced6;
+}
+body.theme-dark {
+  --bg: #1e1f22;
+  --fg: #dfe1e5;
+  --muted: #9097a1;
+  --border: #393b40;
+  --toolbar-bg: #2b2d30;
+  --panel-head: #2b2d30;
+  --tabs-bg: #26282b;
+  --tab-active: #1e1f22;
+  --tab-hover: #303236;
+  --accent: #5c9cf5;
+  --run: #2fb36a;
+  --run-hover: #29a05f;
+  --stop: #e05656;
+  --stop-hover: #c94b4b;
+  --shell-bg: #1e1f22;
+  --prompt: #7d838c;
+  --command: #b4a7ff;
+  --input: #6cb6ff;
+  --repl-input: #dfe1e5;
+  --err: #ff7b72;
+  --info: #9097a1;
+  --hint-bg: #3b3420;
+  --hint-border: #6b5b25;
+  --hint-fg: #f2d47c;
+  --sel-row: #2d3a52;
+  --changed: #4a4120;
+  --code-bg: #2b2d30;
+  --ok-bg: #1f3328;
+  --bad-bg: #3d2224;
+  --good-bg: #1f3328;
+  --error-line: rgba(255, 99, 99, 0.18);
+  --exec-line: rgba(255, 196, 0, 0.22);
+  --exec-mark: #f2c14e;
+  --present-sel: rgba(92, 156, 245, 0.35);
+  --scroll-thumb: #4a4d52;
+}
+
+/* ------------------------------------------------------------------ βασικά */
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  user-select: none;
+}
+.mono { font-family: var(--font-mono); }
+.spacer { flex: 1; }
+code, kbd {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  background: var(--code-bg);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+kbd { border: 1px solid var(--border); border-bottom-width: 2px; }
+button { font: inherit; color: inherit; }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 6px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* ------------------------------------------------------------------ toolbar */
+#toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 8px;
+  background: var(--toolbar-bg);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+#toolbar > * { flex: none; }
+#toolbar > .spacer { flex: 1; }
+#toolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 11px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#toolbar button:hover { background: var(--tab-hover); }
+/* όταν δεν χωρούν όλα (μικρό παράθυρο), κρύβονται κείμενα: πρώτα των αρχείων, μετά των πάνελ */
+#toolbar.compact-1 button.file span, #toolbar.compact-2 button.toggle span { display: none; }
+#toolbar.compact-1 button.file, #toolbar.compact-2 button.toggle { padding: 0 8px; }
+#toolbar button:active { transform: translateY(1px); }
+#toolbar button svg { width: 19px; height: 19px; flex: none; }
+#toolbar button.icon-only { padding: 0 8px; }
+#toolbar .txt { font-weight: 600; font-size: 13px; }
+#toolbar .txt.big { font-size: 15px; }
+#toolbar button.run { background: var(--run); color: #fff; font-weight: 600; padding: 0 16px; }
+#toolbar button.run:hover { background: var(--run-hover); }
+#toolbar button.stop { color: var(--stop); }
+#toolbar button.stop:hover { background: var(--stop); color: #fff; }
+#toolbar button.stop:disabled, #toolbar button.run:disabled { opacity: 0.45; cursor: default; }
+#toolbar button.toggle.on { background: var(--sel-row); border-color: var(--border); }
+#toolbar .speed {
+  --slider: var(--run);
+  display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px 0 8px; margin-left: 4px;
+  border: 1px solid var(--border); border-radius: 7px; color: var(--muted);
+}
+#toolbar .speed.on { --slider: var(--exec-mark); color: var(--exec-mark); border-color: var(--exec-mark); }
+#toolbar .speed svg { width: 18px; height: 18px; flex: none; }
+#speed-label { min-width: 7.4em; font-size: 13px; font-weight: 600; color: var(--fg); }
+#toolbar .speed.on #speed-label { color: var(--exec-mark); }
+/* slider 4 θέσεων: γεμάτη μπάρα έως τη λαβή (--fill, από το app.js) και σημάδια για κάθε θέση */
+.speed-slider { position: relative; width: 92px; height: 20px; }
+.speed-ticks { position: absolute; z-index: 2; left: 8px; right: 8px; top: 50%; height: 0; pointer-events: none; }
+.speed-ticks i {
+  position: absolute; top: -3px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%;
+  background: var(--border); transition: opacity 0.12s;
+}
+.speed-ticks i.done { background: var(--slider); }
+.speed-ticks i.cur { opacity: 0; }
+.speed-ticks i:nth-child(1) { left: 0; }
+.speed-ticks i:nth-child(2) { left: 33.333%; }
+.speed-ticks i:nth-child(3) { left: 66.667%; }
+.speed-ticks i:nth-child(4) { left: 100%; }
+#speed {
+  -webkit-appearance: none; appearance: none; position: relative; z-index: 1;
+  width: 100%; height: 20px; margin: 0; background: transparent; cursor: pointer;
+}
+#speed:focus { outline: none; }
+#speed::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 2px;
+  background: linear-gradient(to right, var(--slider) 0 var(--fill, 100%), var(--border) var(--fill, 100%) 100%);
+}
+#speed::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 16px; height: 16px; margin-top: -6px; border-radius: 50%;
+  background: var(--bg); border: 3px solid var(--slider);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.12s;
+}
+#speed:hover::-webkit-slider-thumb, #speed:active::-webkit-slider-thumb { transform: scale(1.15); }
+#speed:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--sel-row), 0 1px 3px rgba(0, 0, 0, 0.25); }
+#toolbar button.step { display: none; color: var(--exec-mark); font-weight: 600; }
+body.speed-step #toolbar button.step { display: inline-flex; }
+#toolbar button.step:disabled { opacity: 0.45; cursor: default; }
+#toolbar button.step:not(:disabled) { border-color: var(--exec-mark); }
+#toolbar .sep { width: 1px; height: 24px; background: var(--border); margin: 0 6px; }
+body.running #toolbar button.run { opacity: 0.85; }
+
+/* ------------------------------------------------------------------ διάταξη */
+#main { flex: 1; display: flex; min-height: 0; }
+#center { flex: 1; display: flex; flex-direction: column; min-width: 300px; position: relative; }
+#editor-host { flex: 1; min-height: 80px; position: relative; overflow: hidden; }
+#shell-panel { flex: none; height: 34%; min-height: 70px; display: flex; flex-direction: column; }
+#side { flex: none; width: 340px; min-width: 200px; display: flex; flex-direction: column; border-left: 1px solid var(--border); }
+#side .side-panel { display: flex; flex-direction: column; min-height: 60px; }
+#vars-panel { flex: none; height: 45%; }
+#assist-panel { flex: 1 1 0; }
+#recall-panel { flex: 1.5 1 0; }
+body:not(.no-recall) #vars-panel { height: 28%; }
+body.no-vars #vars-panel, body.no-vars #split-assist { display: none; }
+body.no-assist #assist-panel, body.no-assist.no-recall #split-assist { display: none; }
+body.no-recall #recall-panel, body.no-recall #split-recall, body.no-assist #split-recall { display: none; }
+body.no-assist.no-recall #vars-panel { flex: 1; height: auto; }
+body.no-vars.no-assist.no-recall #side, body.no-vars.no-assist.no-recall #split-side { display: none; }
+
+.splitter { flex: none; background: var(--border); position: relative; z-index: 5; }
+.splitter.h { height: 1px; cursor: row-resize; }
+.splitter.v { width: 1px; cursor: col-resize; }
+.splitter.h::after { content: ''; position: absolute; left: 0; right: 0; top: -4px; bottom: -4px; }
+.splitter.v::after { content: ''; position: absolute; top: 0; bottom: 0; left: -4px; right: -4px; }
+.splitter:hover, .splitter.dragging { background: var(--accent); }
+body.dragging-h { cursor: row-resize; }
+body.dragging-v { cursor: col-resize; }
+body.dragging-h *, body.dragging-v * { pointer-events: none; }
+
+.panel-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 6px 0 12px;
+  background: var(--panel-head);
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+}
+.panel-title { font-weight: 600; letter-spacing: 0.2px; }
+.panel-sub { color: var(--muted); font-size: 12px; }
+.panel-body { flex: 1; overflow: auto; min-height: 0; user-select: text; }
+button.mini {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+button.mini:hover { border-color: var(--accent); }
+button.mini.close { border: none; background: transparent; font-size: 17px; line-height: 1; padding: 0 6px; color: var(--muted); }
+button.mini.close:hover { color: var(--fg); }
+
+/* ------------------------------------------------------------------ καρτέλες */
+#tabs {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  min-height: 34px;
+  background: var(--tabs-bg);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+#tabs::-webkit-scrollbar { height: 4px; }
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 33px;
+  padding: 0 6px 0 12px;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--muted);
+  max-width: 260px;
+}
+.tab:hover { background: var(--tab-hover); }
+.tab.active { background: var(--tab-active); color: var(--fg); box-shadow: inset 0 2px 0 var(--accent); margin-bottom: -1px; height: 34px; }
+.tab .name { overflow: hidden; text-overflow: ellipsis; }
+.tab .close {
+  width: 20px; height: 20px; border: none; background: transparent; border-radius: 4px; cursor: pointer;
+  font-size: 15px; line-height: 1; color: var(--muted); display: flex; align-items: center; justify-content: center;
+}
+.tab .close:hover { background: var(--border); color: var(--fg); }
+.tab.dirty .close::before { content: '●'; font-size: 11px; }
+.tab.dirty .close span { display: none; }
+.tab.dirty .close:hover::before { content: ''; }
+.tab.dirty .close:hover span { display: inline; }
+.tab.running .name::before { content: '▶ '; color: var(--run); font-size: 10px; }
+
+/* ------------------------------------------------------------------ editor */
+.monaco-editor .error-line { background: var(--error-line); }
+.monaco-editor .error-glyph::before {
+  content: '!';
+  display: flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; margin: 2px 0 0 3px;
+  background: #e5484d; color: #fff; border-radius: 50%;
+  font: bold 11px/1 var(--font-ui);
+}
+
+/* γραμμή που εκτελείται (βήμα-βήμα) */
+.monaco-editor .exec-line { background: var(--exec-line); }
+.monaco-editor .exec-glyph::before {
+  content: '➜';
+  display: flex; align-items: center; justify-content: center;
+  width: 16px; height: 100%; margin-left: 2px;
+  color: var(--exec-mark); font: bold 15px/1 var(--font-ui);
+}
+
+/* ------------------------------------------------------------------ shell */
+#shell, #pr-shell {
+  flex: 1;
+  overflow: auto;
+  padding: 6px 10px 20px;
+  background: var(--shell-bg);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.45;
+  user-select: text;
+  outline: none;
+  cursor: text;
+}
+:is(#shell, #pr-shell) .out { color: var(--fg); }
+:is(#shell, #pr-shell) .stderr, :is(#shell, #pr-shell) .err { color: var(--err); }
+:is(#shell, #pr-shell) .prompt { color: var(--prompt); }
+:is(#shell, #pr-shell) .command { color: var(--command); font-weight: 600; }
+:is(#shell, #pr-shell) .user-input { color: var(--input); font-weight: 600; }
+:is(#shell, #pr-shell) .repl-input { color: var(--repl-input); }
+:is(#shell, #pr-shell) .info { color: var(--info); font-style: italic; }
+#shell .tb-link { color: var(--accent); text-decoration: underline; cursor: pointer; }
+#shell .tb-link:hover { text-decoration-thickness: 2px; }
+:is(#shell, #pr-shell) .hint {
+  display: inline-block;
+  margin: 4px 0 2px;
+  padding: 3px 10px;
+  background: var(--hint-bg);
+  color: var(--hint-fg);
+  border: 1px solid var(--hint-border);
+  border-radius: 6px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+#shell .hint:hover { filter: brightness(0.97); }
+/* inline-block με πλάτος: σε άδειο inline στοιχείο πλάτους 0 ο κέρσορας δεν σχεδιάζεται */
+#shell .shell-edit {
+  outline: none;
+  color: var(--input);
+  font-weight: 600;
+  caret-color: var(--fg);
+  display: inline-block;
+  min-width: 1ch;
+  max-width: 100%;
+}
+#shell .shell-edit:empty::after { content: '\200b'; }
+/* το πρόγραμμα περιμένει τιμή: κουτί εισόδου με οδηγία, ορατό ακόμα κι αν το focus είναι αλλού */
+#shell .shell-edit.waiting {
+  min-width: 10ch;
+  padding: 0 5px;
+  margin-left: 1px;
+  border-radius: 3px;
+  background: var(--sel-row);
+  box-shadow: inset 0 -2px 0 var(--input);
+}
+#shell .shell-edit.waiting:empty::after {
+  content: 'γράψε εδώ και πάτα Enter ⏎';
+  color: var(--muted);
+  font: italic 400 0.9em var(--font-ui);
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ μεταβλητές */
+#vars .empty, #assistant .empty { padding: 16px; color: var(--muted); font-size: 13px; }
+table.vars { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+table.vars th {
+  position: sticky; top: 0; z-index: 1;
+  text-align: left; font-weight: 600; font-size: 12px; color: var(--muted);
+  background: var(--panel-head); padding: 5px 8px; border-bottom: 1px solid var(--border);
+}
+table.vars th:nth-child(1) { width: 30%; }
+table.vars th:nth-child(3) { width: 26%; }
+table.vars td { padding: 4px 8px; border-bottom: 1px solid var(--border); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: top; }
+table.vars tr { cursor: pointer; }
+table.vars tr:hover td { background: var(--tab-hover); }
+table.vars tr.selected td { background: var(--sel-row); }
+table.vars tr.changed td { animation: changed 1.8s ease-out; }
+@keyframes changed { from { background: var(--changed); } to { background: transparent; } }
+.vname { font-weight: 600; font-family: var(--font-mono); }
+.vval { font-family: var(--font-mono); }
+.vtype { color: var(--muted); font-size: 12px; }
+.vtype-gr { display: block; font-size: 11px; opacity: 0.85; }
+table.vars tr.group td {
+  padding: 10px 8px 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  background: var(--bg);
+  cursor: default;
+}
+table.vars tr.group:hover td { background: var(--bg); }
+table.vars tr.group.local td { color: var(--exec-mark); }
+table.vars tr.fn .vval { color: var(--accent); }
+.vfn-label { margin-top: 6px; color: var(--muted); }
+.vfn-doc { margin-top: 6px; font-style: italic; }
+.vfn-goto {
+  margin-top: 8px; border: 1px solid var(--border); background: var(--bg); border-radius: 6px;
+  padding: 3px 10px; cursor: pointer; font-size: 12.5px; color: var(--accent);
+}
+.vfn-goto:hover { border-color: var(--accent); }
+.vdetail:not(:empty) { margin: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 12.5px; }
+.vdetail-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; color: var(--muted); }
+.vdetail-head b { color: var(--fg); font-family: var(--font-mono); }
+.vdetail pre { margin: 6px 0 0; white-space: pre-wrap; word-break: break-word; font-family: var(--font-mono); max-height: 220px; overflow: auto; }
+
+/* ------------------------------------------------------------------ βοηθός */
+.assist { padding: 12px 14px 20px; font-size: 13.5px; line-height: 1.55; }
+.assist h3 { margin: 0 0 8px; font-size: 15px; line-height: 1.35; }
+.assist h4 { margin: 14px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+.assist p { margin: 4px 0; }
+.assist ul, .assist ol { margin: 4px 0; padding-left: 20px; }
+.assist li { margin: 3px 0; }
+.assist .muted, .muted { color: var(--muted); }
+.assist.ok h3 { color: var(--run); }
+.assist.error h3 { color: var(--err); }
+.assist .orig { margin: 6px 0 8px; font-size: 12.5px; }
+.assist .orig code { display: block; padding: 6px 8px; white-space: pre-wrap; word-break: break-word; }
+.assist .orig .tr { margin-top: 4px; color: var(--muted); font-style: italic; }
+.assist .goto {
+  border: 1px solid var(--border); background: var(--bg); border-radius: 6px; padding: 3px 10px;
+  cursor: pointer; font-size: 12.5px; color: var(--accent);
+}
+.assist .goto:hover { border-color: var(--accent); }
+.ex { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.ex-col { flex: 1 1 140px; border-radius: 8px; padding: 6px 8px; min-width: 0; }
+.ex-col.bad { background: var(--bad-bg); }
+.ex-col.good { background: var(--good-bg); }
+.ex-label { font-size: 11.5px; font-weight: 600; margin-bottom: 4px; }
+.ex-col.bad .ex-label { color: var(--err); }
+.ex-col.good .ex-label { color: var(--run); }
+.ex pre { margin: 0; font-family: var(--font-mono); font-size: 12.5px; white-space: pre-wrap; word-break: break-word; }
+
+/* ------------------------------------------------------------------ θέλω να θυμηθώ */
+#recall .empty { padding: 16px; color: var(--muted); font-size: 13px; }
+.recall { font-size: 13.5px; line-height: 1.5; }
+.rc-search { position: sticky; top: 0; z-index: 2; padding: 8px; background: var(--bg); border-bottom: 1px solid var(--border); }
+.rc-search input {
+  width: 100%; font: inherit; font-size: 13px; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px;
+}
+.rc-search input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.rc-list { padding-bottom: 16px; }
+.rc-cat-title {
+  padding: 12px 12px 4px; font-size: 11.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--muted);
+}
+.rc-topic > summary {
+  display: flex; align-items: center; gap: 6px; padding: 5px 10px 5px 12px; cursor: pointer; list-style: none;
+}
+.rc-topic > summary::-webkit-details-marker { display: none; }
+.rc-topic > summary::before { content: '▸'; flex: none; width: 10px; color: var(--muted); font-size: 11px; }
+.rc-topic[open] > summary::before { content: '▾'; }
+.rc-topic > summary:hover { background: var(--tab-hover); }
+.rc-topic[open] > summary { background: var(--sel-row); font-weight: 600; }
+.rc-title { flex: 1; min-width: 0; }
+.rc-exam-mark {
+  flex: none; font-size: 10px; font-weight: 700; line-height: 1; padding: 3px 4px; border-radius: 4px;
+  color: var(--hint-fg); background: var(--hint-bg); border: 1px solid var(--hint-border);
+}
+.rc-body { padding: 6px 12px 12px; border-bottom: 1px solid var(--border); }
+.rc-body p { margin: 6px 0; }
+.rc-body ul { margin: 6px 0; padding-left: 20px; }
+.rc-body li { margin: 3px 0; }
+.rc-body h4 { margin: 14px 0 4px; font-size: 13px; color: var(--accent); }
+.rc-exams { font-size: 12px; color: var(--hint-fg); background: var(--hint-bg); border-radius: 6px; padding: 3px 8px; margin: 2px 0 6px; display: inline-block; }
+.rc-code { margin: 6px 0 8px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.rc-code pre, .rc-output pre {
+  margin: 0; padding: 8px 10px; font-size: 12.5px; line-height: 1.45; overflow-x: auto; white-space: pre;
+  background: var(--shell-bg); user-select: text;
+}
+.rc-tools { display: flex; gap: 4px; justify-content: flex-end; padding: 3px 4px; background: var(--panel-head); border-top: 1px solid var(--border); }
+.rc-tools button {
+  border: 1px solid transparent; background: transparent; border-radius: 5px; padding: 1px 8px;
+  font-size: 12px; color: var(--accent); cursor: pointer;
+}
+.rc-tools button:hover { border-color: var(--accent); background: var(--bg); }
+.rc-output { margin: -2px 0 8px; border-left: 3px solid var(--border); }
+.rc-output .rc-label { padding: 2px 10px 0; font-size: 11.5px; color: var(--muted); }
+.rc-output pre { background: transparent; padding-top: 2px; color: var(--fg); }
+.rc-note { display: flex; gap: 8px; margin: 6px 0; padding: 6px 9px; border-radius: 8px; font-size: 13px; }
+.rc-note .rc-icon { flex: none; }
+.rc-note.warn { background: var(--bad-bg); }
+.rc-note.warn .rc-icon { color: var(--err); }
+.rc-note.tip { background: var(--hint-bg); color: var(--fg); }
+.rc-table { margin: 6px 0 8px; overflow-x: auto; }
+.rc-table table { border-collapse: collapse; font-size: 12.5px; min-width: 100%; }
+.rc-table th { text-align: left; font-weight: 600; color: var(--muted); background: var(--panel-head); }
+.rc-table th, .rc-table td { padding: 3px 7px; border: 1px solid var(--border); vertical-align: top; }
+.rc-table code { white-space: nowrap; }
+
+/* ------------------------------------------------------------------ status bar */
+#statusbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 24px;
+  padding: 0 12px;
+  background: var(--toolbar-bg);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+#statusbar .st-file { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 50vw; }
+.st-state { font-weight: 600; }
+.st-state.idle { color: var(--muted); }
+.st-state.running { color: var(--run); }
+.st-state.input { color: var(--input); }
+.st-state.error { color: var(--err); }
+#st-py.bad { color: var(--err); font-weight: 600; cursor: pointer; }
+
+/* ------------------------------------------------------------------ διάλογοι */
+dialog {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--fg);
+  padding: 0;
+  width: min(560px, 92vw);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+  user-select: text;
+}
+dialog.wide { width: min(820px, 94vw); }
+dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
+dialog form { padding: 18px 22px; }
+dialog h2 { margin: 0 0 14px; font-size: 18px; }
+dialog h3 { margin: 16px 0 6px; font-size: 14.5px; }
+dialog p, dialog li { line-height: 1.55; }
+.help-body { max-height: 64vh; overflow: auto; padding-right: 6px; }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; font-size: 13px; font-weight: 600; }
+.field small { font-weight: 400; color: var(--muted); }
+.field .row { display: flex; gap: 6px; }
+.field .row input { flex: 1; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.check { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13.5px; }
+dialog input[type=text], dialog input[type=number], dialog select {
+  font: inherit; font-weight: 400; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px;
+}
+dialog input:focus, dialog select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+dialog button {
+  border: 1px solid var(--border); background: var(--toolbar-bg); border-radius: 6px; padding: 6px 14px; cursor: pointer;
+}
+dialog button:hover { border-color: var(--accent); }
+dialog button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.ok-text { color: var(--run); }
+.bad-text { color: var(--err); }
+/* ------------------------------------------------------------------ τάξη */
+#toolbar button.hand { display: none; }
+body.classroom-on #toolbar button.hand { display: inline-flex; }
+#toolbar button.hand .hand-icon { font-size: 17px; line-height: 1; filter: grayscale(1); opacity: 0.75; }
+body.hand-up #toolbar button.hand { background: var(--hint-bg); border-color: var(--hint-border); color: var(--hint-fg); font-weight: 600; }
+body.hand-up #toolbar button.hand .hand-icon { filter: none; opacity: 1; animation: hand-wave 1.6s ease-in-out infinite; }
+@keyframes hand-wave { 0%, 60%, 100% { transform: rotate(0); } 20% { transform: rotate(-14deg); } 40% { transform: rotate(10deg); } }
+#toolbar.compact-2 button.hand span:not(.hand-icon) { display: none; }
+.st-class { font-weight: 600; cursor: pointer; white-space: nowrap; }
+.st-class.searching { color: var(--muted); }
+.st-class.connected { color: var(--accent); }
+.st-class.note { color: var(--hint-fg); }
+.st-class.present { color: var(--run); }
+
+/* ------------------------------------------------------------------ παρουσίαση του καθηγητή (μαθητής) */
+#present-panel {
+  position: absolute; inset: 0; z-index: 20;
+  display: flex; flex-direction: column;
+  background: var(--bg);
+  box-shadow: 0 0 0 2px var(--run) inset;
+}
+#present-panel[hidden] { display: none; }
+#present-panel .present-head { background: var(--sel-row); }
+#present-panel .present-title { font-weight: 600; white-space: nowrap; }
+#present-panel #pr-file { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#present-panel .present-lock { font-weight: 600; color: var(--run); white-space: nowrap; }
+#present-panel .pr-zoom { display: flex; gap: 2px; }
+#present-panel .pr-zoom #pr-font-size { min-width: 34px; }
+#present-panel button.mini { white-space: nowrap; }
+#present-panel button.mini:disabled { opacity: 0.45; cursor: default; }
+#pr-editor { flex: 1 1 0; min-height: 80px; position: relative; overflow: hidden; }
+#pr-shell { flex: 0 0 30%; padding-bottom: 8px; cursor: default; border-top: 1px solid var(--border); }
+.monaco-editor .present-line { background: var(--sel-row); }
+.monaco-editor .present-caret { border-left: 2px solid var(--accent); margin-left: -1px; }
+.monaco-editor .present-sel { background: var(--present-sel); }
+/* μόνο ο κέρσορας του καθηγητή: όχι και ο (άχρηστος) κέρσορας του editor μόνο-για-ανάγνωση */
+#pr-editor .monaco-editor .cursors-layer { display: none; }
+/* «Όλοι εδώ»: η εκτέλεση του δικού μου κώδικα περιμένει το τέλος της παρουσίασης */
+body.present-locked #toolbar [data-cmd="run"], body.present-locked #toolbar [data-cmd="step"] { opacity: 0.45; }
+#dlg-classroom .cls-missing { display: none; white-space: pre-line; }
+#dlg-classroom.no-trust .cls-missing { display: block; }
+#dlg-classroom.no-trust .cls-ready { display: none; }
+#cls-pin { font-family: var(--font-mono); font-size: 20px; letter-spacing: 6px; width: 8em; }
+
+table.keys { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.keys td { padding: 4px 6px; border-bottom: 1px solid var(--border); }

@@ -1,0 +1,94 @@
+{
+  "name": "python2-epal",
+  "productName": "Python 2.7 ΕΠΑΛ",
+  "version": "1.6.0",
+  "description": "Φιλικό περιβάλλον προγραμματισμού Python 2.7 για μαθητές ΕΠΑΛ (τύπου Thonny)",
+  "main": "src/main/main.js",
+  "desktopName": "python2-epal.desktop",
+  "author": "Λέων Προκόπης, καθηγητής Πληροφορικής ΠΕ86",
+  "license": "CC-BY-NC-SA-4.0",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test \"tests/*.test.js\" && C:/Python27/python.exe -m unittest discover -s tests -p \"test_*.py\"",
+    "dist": "electron-builder --win",
+    "dist:portable": "electron-builder --win portable",
+    "dist:linux": "node scripts/build-linux.js"
+  },
+  "build": {
+    "appId": "gr.epal.python2",
+    "productName": "Python2-EPAL",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "backend/**/*.py",
+      "examples/**/*.py",
+      "package.json",
+      "node_modules/monaco-editor/min/**/*"
+    ],
+    "asarUnpack": [
+      "backend/**/*",
+      "examples/**/*"
+    ],
+    "fileAssociations": [
+      {
+        "ext": "py",
+        "name": "Python 2 πρόγραμμα",
+        "role": "Editor",
+        "mimeType": "text/x-python"
+      }
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "portable": {
+      "artifactName": "Python2-EPAL-${version}-portable.exe"
+    },
+    "nsis": {
+      "artifactName": "Python2-EPAL-${version}-setup.exe",
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Python 2.7 ΕΠΑΛ"
+    },
+    "linux": {
+      "target": [
+        "deb"
+      ],
+      "category": "Development",
+      "icon": "build/icon.png",
+      "executableName": "python2-epal",
+      "maintainer": "Λέων Προκόπης <37191269+pliroforikos@users.noreply.github.com>",
+      "synopsis": "Περιβάλλον προγραμματισμού Python 2.7 για μαθητές ΕΠΑΛ",
+      "description": "Φιλικό περιβάλλον προγραμματισμού Python 2.7 τύπου Thonny για τους μαθητές του Τομέα Πληροφορικής των ΕΠΑΛ.",
+      "syncDesktopName": true,
+      "extraResources": [
+        {
+          "from": "scripts/linux/install-python27.sh",
+          "to": "install-python27.sh"
+        }
+      ]
+    },
+    "deb": {
+      "artifactName": "python2-epal_${version}_amd64.deb"
+    }
+  },
+  "dependencies": {
+    "monaco-editor": "^0.52.2"
+  },
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pliroforikos/myPython2.git"
+  },
+  "homepage": "https://github.com/pliroforikos/myPython2"
+}
