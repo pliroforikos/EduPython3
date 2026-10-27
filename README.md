@@ -4,7 +4,7 @@
 εμπνευσμένο από τον [Thonny](https://thonny.org).
 **Δημιουργός:** Λέων Προκόπης, καθηγητής Πληροφορικής ΠΕ86
 
-Ύλη και θέματα προηγούμενων ετών: [panellhnies.gr](https://panellhnies.gr/mathima/programmatismos-ypologiston).
+📖 **[Αναλυτικός Οδηγός Χρήσης (docs/USAGE.md)](docs/USAGE.md)** · Ύλη και θέματα προηγούμενων ετών: [panellhnies.gr](https://panellhnies.gr/mathima/programmatismos-ypologiston).
 
 ## Τι προσφέρει
 
@@ -141,6 +141,7 @@ npm run dist:linux # δημιουργία .deb και .tar.gz για Linux (χτ
 | `src/renderer/errorHelp.js` | Ο Βοηθός λαθών (κανόνες και ελληνικά κείμενα) |
 | `src/renderer/pydocs.js` | Ελληνική τεκμηρίωση για autocomplete/hovers |
 | `src/renderer/recall.md`, `recall.js` | «Θέλω να θυμηθώ»: περιεχόμενο (markdown) και πάνελ |
+| `docs/USAGE.md` | Αναλυτικός οδηγός χρήσης για μαθητές και εκπαιδευτικούς |
 | `scripts/build-linux.js` | Πακέτα Linux (.deb, .tar.gz) χωρίς fpm, ώστε να χτίζονται και από Windows |
 | `scripts/linux/` | Εκκινητής της έκδοσης Linux χωρίς εγκατάσταση |
 
