@@ -1,8 +1,8 @@
 'use strict';
-// Διαχείριση των διεργασιών Python 2.7: ο runner (εκτέλεση + Shell) και ο
+// Διαχείριση των διεργασιών Python 3: ο runner (εκτέλεση + Shell) και ο
 // checker (ζωντανός έλεγχος σύνταξης). Επικοινωνία με JSON ανά γραμμή.
 
-const { spawn, execFile } = require('child_process');
+const { spawn, execFile, execFileSync } = require('child_process');
 const { EventEmitter } = require('events');
 const fs = require('fs');
 const os = require('os');
@@ -14,46 +14,130 @@ const CHECKER = path.join(BACKEND_DIR, 'checker.py');
 
 const IS_WIN = process.platform === 'win32';
 
-const PYTHON_CANDIDATES = IS_WIN ? [
-  'C:\\Python27\\python.exe',
-  'C:\\Program Files\\Python27\\python.exe',
-  'C:\\Program Files (x86)\\Python27\\python.exe',
-  'D:\\Python27\\python.exe',
-] : [
-  '/usr/bin/python2.7',
-  '/usr/bin/python2',
-  '/usr/local/bin/python2.7',
-  '/opt/python2.7/bin/python2.7',   // εγκατάσταση με το scripts/install-python27-linux.sh
-];
-
+/**
+ * Αναζητά κατάλληλη εγκατάσταση Python 3 (3.10 έως 3.14).
+ * Σειρά στα Windows:
+ *  1. η διαδρομή από τις Ρυθμίσεις (αν έχει οριστεί και υπάρχει)
+ *  2. ο py launcher (py -0p), επιλέγεται η νεότερη 3.10+
+ *  3. %LOCALAPPDATA%\Programs\Python\Python3*\python.exe
+ *  4. C:\Program Files\Python3*\python.exe
+ *  5. python.exe στο PATH, εκτός από το stub του Microsoft Store (WindowsApps)
+ *
+ * Σειρά στο Linux: python3 στο PATH, /usr/bin/python3, νεότερη 3.x του pyenv.
+ */
 function findPython(configured) {
   if (configured && fs.existsSync(configured)) return configured;
-  return PYTHON_CANDIDATES.find((p) => fs.existsSync(p)) || (IS_WIN ? null : findPythonOnPath()) || configured || null;
+
+  if (IS_WIN) {
+    // 2. py launcher
+    const py = findViaPyLauncher();
+    if (py) return py;
+
+    // 3. %LOCALAPPDATA%\Programs\Python\Python3*\python.exe
+    const localPy = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Python');
+    const fromLocal = findInPythonDir(localPy);
+    if (fromLocal.length) return fromLocal[0];
+
+    // 4. Program Files\Python3*\python.exe
+    const progFiles = [process.env.ProgramFiles, 'C:\\Program Files', process.env['ProgramFiles(x86)']]
+      .filter(Boolean)
+      .filter((v, i, a) => a.indexOf(v) === i);
+    for (const pf of progFiles) {
+      const fromPf = findInPythonDir(pf);
+      if (fromPf.length) return fromPf[0];
+    }
+
+    // 5. python.exe στο PATH, εκτός από το Microsoft Store stub (WindowsApps)
+    const onPath = findPythonOnPathWin();
+    if (onPath) return onPath;
+  } else {
+    // Linux
+    const onPath = findPythonOnPathLinux();
+    if (onPath) return onPath;
+
+    if (fs.existsSync('/usr/bin/python3')) return '/usr/bin/python3';
+
+    const fromPyenv = findPythonPyenv();
+    if (fromPyenv) return fromPyenv;
+  }
+
+  return configured || null;
 }
 
-/** Linux: python2.7 / python2 στο PATH ή η νεότερη 2.7.x του pyenv. */
-function findPythonOnPath() {
-  for (const dir of (process.env.PATH || '').split(path.delimiter).filter(Boolean)) {
-    for (const name of ['python2.7', 'python2']) {
-      if (fs.existsSync(path.join(dir, name))) return path.join(dir, name);
+function findViaPyLauncher() {
+  try {
+    const out = execFileSync('py', ['-0p'], { encoding: 'utf-8', timeout: 3000, windowsHide: true });
+    const list = [];
+    for (const line of out.split('\n')) {
+      const m = /^\s*-V:(\d+)\.(\d+)(?:-\d+)?\s*\*?\s+(.+)$/.exec(line.trim());
+      if (!m) continue;
+      const major = Number(m[1]), minor = Number(m[2]), p = m[3].trim();
+      if (major === 3 && minor >= 10 && fs.existsSync(p)) {
+        list.push({ minor, path: p });
+      }
     }
+    list.sort((a, b) => b.minor - a.minor);
+    return list.length ? list[0].path : null;
+  } catch (_) {
+    return null;
   }
+}
+
+function findInPythonDir(baseDir) {
+  try {
+    if (!fs.existsSync(baseDir)) return [];
+    return fs.readdirSync(baseDir)
+      .filter((d) => /^Python3(\d+)/i.test(d))
+      .map((d) => {
+        const m = /^Python3(\d+)/i.exec(d);
+        return { minor: Number(m[1]), exe: path.join(baseDir, d, 'python.exe') };
+      })
+      .filter((item) => item.minor >= 10 && fs.existsSync(item.exe))
+      .sort((a, b) => b.minor - a.minor)
+      .map((item) => item.exe);
+  } catch (_) {
+    return [];
+  }
+}
+
+function findPythonOnPathWin() {
+  for (const dir of (process.env.PATH || '').split(path.delimiter).filter(Boolean)) {
+    if (/WindowsApps/i.test(dir)) continue;
+    const exe = path.join(dir, 'python.exe');
+    if (fs.existsSync(exe)) return exe;
+  }
+  return null;
+}
+
+function findPythonOnPathLinux() {
+  for (const dir of (process.env.PATH || '').split(path.delimiter).filter(Boolean)) {
+    const exe = path.join(dir, 'python3');
+    if (fs.existsSync(exe)) return exe;
+  }
+  return null;
+}
+
+function findPythonPyenv() {
   const pyenv = path.join(os.homedir(), '.pyenv', 'versions');
   try {
-    const v = fs.readdirSync(pyenv).filter((d) => /^2\.7\.\d+$/.test(d))
-      .sort((a, b) => a.localeCompare(b, 'en', { numeric: true })).pop();
-    if (v) return path.join(pyenv, v, 'bin', 'python2.7');
+    const v = fs.readdirSync(pyenv)
+      .filter((d) => /^3\.(1[0-9]|[2-9][0-9])\.\d+$/.test(d))
+      .sort((a, b) => a.localeCompare(b, 'en', { numeric: true }))
+      .pop();
+    if (v) {
+      const exe = path.join(pyenv, v, 'bin', 'python3');
+      if (fs.existsSync(exe)) return exe;
+    }
   } catch (_) { /* χωρίς pyenv */ }
   return null;
 }
 
 function cleanEnv() {
   const env = { ...process.env };
-  // μεταβλητές μιας εγκατάστασης Python 3 μπορεί να χαλάσουν την Python 2
   for (const k of ['PYTHONHOME', 'PYTHONPATH', 'PYTHONSTARTUP', 'PYTHONUSERBASE', 'VIRTUAL_ENV']) delete env[k];
   env.PYTHONDONTWRITEBYTECODE = '1';
-  // Linux: η Python 2 κωδικοποιεί τα ονόματα αρχείων με το locale. Χωρίς UTF-8 locale (π.χ. LANG=C),
-  // διαδρομές όπως ~/Έγγραφα/Python2 δεν θα μπορούσαν να ανοίξουν.
+  env.PYTHONUTF8 = '1';
+  env.PYTHONIOENCODING = 'utf-8';
   if (!IS_WIN && !/utf-?8/i.test(env.LC_ALL || env.LC_CTYPE || env.LANG || '')) env.LC_ALL = 'C.UTF-8';
   return env;
 }
@@ -61,11 +145,22 @@ function cleanEnv() {
 function pythonVersion(pythonPath) {
   return new Promise((resolve) => {
     if (!pythonPath || !fs.existsSync(pythonPath)) return resolve({ ok: false, error: 'notfound' });
-    execFile(pythonPath, ['-c', 'import sys; sys.stdout.write(sys.version.split()[0])'],
+    const code = 'import sys; tk=0\ntry:\n import tkinter; tk=1\nexcept:\n pass\nsys.stdout.write(sys.version.split()[0] + chr(32) + str(tk))';
+    execFile(pythonPath, ['-c', code],
       { env: cleanEnv(), timeout: 8000, windowsHide: true }, (err, stdout) => {
         if (err) return resolve({ ok: false, error: 'failed', detail: String(err.message || err) });
-        const version = String(stdout).trim();
-        resolve({ ok: version.startsWith('2.'), version, error: version.startsWith('2.') ? null : 'notpy2' });
+        const parts = String(stdout).trim().split(' ');
+        const version = parts[0] || '';
+        const tk = parts[1] === '1';
+        if (!version.startsWith('3.')) {
+          return resolve({ ok: false, version, tk: false, error: 'notpy3' });
+        }
+        const vparts = version.split('.').map(Number);
+        const minor = vparts[1] || 0;
+        if (minor < 10) {
+          return resolve({ ok: false, version, tk, error: 'tooold' });
+        }
+        resolve({ ok: true, version, tk, error: null });
       });
   });
 }
@@ -135,8 +230,8 @@ class Backend extends EventEmitter {
       try { msg = JSON.parse(line); } catch (_) { msg = { type: 'out', stream: 'stdout', text: line + '\n' }; }
       this.emit('message', msg);
     }));
-    // ό,τι γράφεται απευθείας στο fd (π.χ. os.system) έρχεται εδώ, στην κωδικοποίηση του συστήματος
-    const errDecoder = new TextDecoder(IS_WIN ? 'windows-1253' : 'utf-8');
+    // ό,τι γράφεται απευθείας στο fd (π.χ. os.system) έρχεται εδώ σε UTF-8
+    const errDecoder = new TextDecoder('utf-8');
     proc.stderr.on('data', (chunk) => {
       if (gen !== this.gen) return;
       const text = errDecoder.decode(chunk, { stream: true });
@@ -250,4 +345,4 @@ class Checker {
   dispose() { this.reset(); }
 }
 
-module.exports = { Backend, Checker, findPython, pythonVersion };
+module.exports = { Backend, Checker, findPython, pythonVersion, cleanEnv };

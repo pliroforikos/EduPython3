@@ -8,7 +8,7 @@
 |---|---|---|
 | Προετοιμασία: repo και αρχεία παράδοσης | ✅ έγινε (Claude) | αρχικό |
 | 0: Rebranding | ✅ ολοκληρώθηκε | Φάση 0 |
-| 1: Εύρεση interpreter | ⬜ | |
+| 1: Εύρεση interpreter | ✅ ολοκληρώθηκε | Φάση 1 |
 | 2: Backend σε Python 3 | ⬜ | |
 | 3: Editor, τεκμηρίωση, Βοηθός | ⬜ | |
 | 4: Περιεχόμενο | ⬜ | |
@@ -49,24 +49,40 @@
 **Για έλεγχο από τον χρήστη:**
 - Οπτικός έλεγχος του νέου σχεδίου εικονιδίου «Py 3».
 
-<!-- Πρότυπο για κάθε φάση:
-
-### Φάση N: τίτλος
+### Φάση 1: Εύρεση interpreter (Python 3.10+)
 **Τι έγινε:**
--
-**Πώς ελέγχθηκε:** (tests που έτρεξαν, χειροκίνητοι έλεγχοι)
--
+- `src/main/pythonProcess.js`:
+  - `findPython()`: Αναζήτηση στα Windows με σειρά: 1) ορισμένη διαδρομή από ρυθμίσεις, 2) py launcher (`py -0p`) επιλέγοντας τη νεότερη έκδοση 3.10+, 3) `%LOCALAPPDATA%\Programs\Python\Python3*`, 4) `Program Files\Python3*`, 5) PATH παρακάμπτοντας ρητά το stub του Microsoft Store (`WindowsApps`). Στο Linux: PATH `python3`, `/usr/bin/python3`, νεότερη 3.10+ του pyenv.
+  - `pythonVersion()`: Εκτέλεση Python snippet που ελέγχει `sys.version` και διαθεσιμότητα του `tkinter`. Επιστρέφει `{ ok, version, tk, error }`, με διακριτά σφάλματα `notfound`, `notpy3` (αν < 3.0), και `tooold` (αν < 3.10).
+  - `cleanEnv()`: Καθαρισμός επικίνδυνων μεταβλητών περιβάλλοντος και προσθήκη `PYTHONUTF8 = '1'`, `PYTHONIOENCODING = 'utf-8'`, `PYTHONDONTWRITEBYTECODE = '1'`.
+  - `errDecoder`: Χρήση `TextDecoder('utf-8')` αντί για windows-1253.
+- `src/main/main.js`:
+  - Ενημέρωση τίτλων διαλόγου επιλογής εκτελέσιμου για Python 3.
+  - Αφαίρεση του `linuxInstallScript()`.
+  - Προσθήκη IPC listener `openExternal` για ασφαλές άνοιγμα εξωτερικών συνδέσμων (python.org).
+- `src/preload.js`: Έκθεση `api.openExternal(url)`.
+- `src/renderer/index.html`: Ενημέρωση ετικέτας ρυθμίσεων σε «Python 3 (python.exe ή python3)» και φακέλου αρχείων σε `EduPython3`.
+- `src/renderer/app.js`:
+  - `checkPython()`: Ενημέρωση για Python 3.10+, υποστήριξη `notpy3`/`tooold`/`notfound`, κουμπί «Λήψη Python…» προς python.org με σημείωση ότι το PATH είναι προαιρετικό χάρη στον py launcher.
+  - Shell `no_python`: Ενημέρωση μηνύματος για Python 3 (3.10+).
+  - Ρυθμίσεις (`openSettings` test): Εμφάνιση κατάστασης Python 3, ένδειξη αν λείπει το tkinter, και μηνύματα για `notpy3`/`tooold`.
+- `tests/pythonProcess.test.js`: Νέο suite με 6 unit tests (εύρεση 3.10+, αποφυγή WindowsApps, cleanEnv UTF-8, αναγνώριση Python 3, απόρριψη Python 2 και μη υπαρκτής διαδρομής).
+
+**Πώς ελέγχθηκε:**
+- `npm test`: 49 JS unit tests (συμπεριλαμβανομένων των νέων της Phase 1) + 28 runner tests πέρασαν 100%.
+
 **Αποκλίσεις από το σχέδιο και γιατί:**
--
+- Καμία.
+
 **Tests που μένουν σπασμένα (και σε ποια φάση διορθώνονται):**
--
+- Κανένα.
+
 **Για έλεγχο από τον χρήστη:**
--
--->
+- Έλεγχος της συμπεριφοράς εύρεσης και σε περιβάλλον με παλαιότερη Python 3 (3.10–3.13) αν υπάρχει.
 
 ## Ανοιχτά ερωτήματα
 
-(Ερωτήσεις προς τον χρήστη. Γράψε τη συντηρητική επιλογή που έκανες στο μεταξύ.)
+- Στο τρέχον σύστημα υπάρχει εγκατεστημένη η Python 3.14 (`C:\Program Files\Python314\python.exe`) και η Python 2.7 (`C:\Python27\python.exe`). Η ανίχνευση και λειτουργία ελέγχθηκε επιτυχώς στην 3.14. Όπως ορίζεται στο `GEMINI.md`, σημειώνεται ότι το corpus και η εύρεση πρέπει να ελεγχθούν μελλοντικά και σε περιβάλλον με 3.10.
 
 ## Περιεχόμενο για διδακτικό έλεγχο (Φάση 4)
 

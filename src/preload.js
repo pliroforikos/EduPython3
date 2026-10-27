@@ -66,6 +66,7 @@ contextBridge.exposeInMainWorld('api', {
     onEvent: (cb) => ipcRenderer.on('teacher', (_e, type, data) => cb(type, data)),
   },
   onMenu: (cb) => ipcRenderer.on('menu', (_e, id, arg) => cb(id, arg)),
+  openExternal: (url) => ipcRenderer.send('openExternal', url),
   closeNow: () => ipcRenderer.send('app:closeNow'),
   pathForFile: (file) => { try { return webUtils.getPathForFile(file); } catch (_) { return null; } },
 });

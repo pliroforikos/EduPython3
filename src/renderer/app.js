@@ -199,26 +199,40 @@
         st.title = info.path;
         st.onclick = null;
       } else {
-        st.textContent = info.error === 'notpy2' ? `⚠ Python ${info.version}: χρειάζεται 2.7` : '⚠ Δεν βρέθηκε Python 2.7';
+        if (info.error === 'notpy3') {
+          st.textContent = `⚠ Python ${info.version}: χρειάζεται Python 3.10+`;
+        } else if (info.error === 'tooold') {
+          st.textContent = `⚠ Python ${info.version}: παλιά έκδοση (χρειάζεται 3.10+)`;
+        } else {
+          st.textContent = '⚠ Δεν βρέθηκε Python 3';
+        }
         st.className = 'bad';
         st.title = 'Κλικ για ρυθμίσεις';
         st.onclick = () => this.openSettings();
+
+        let message = 'Δεν βρέθηκε η Python 3 στον υπολογιστή.';
+        if (info.error === 'notpy3') {
+          message = `Η διαδρομή που έχει οριστεί είναι Python ${info.version}, όχι Python 3.`;
+        } else if (info.error === 'tooold') {
+          message = `Η έκδοση Python ${info.version} είναι πολύ παλιά. Χρειάζεται Python 3.10 ή νεότερη.`;
+        }
+
+        const detail = api.platform === 'win32'
+          ? 'Η εφαρμογή χρειάζεται την Python 3 (3.10 ή νεότερη). Κατέβασέ την από το python.org (η επιλογή «Add Python to PATH» είναι προαιρετική). ' +
+            'Αν είναι ήδη εγκατεστημένη, όρισε τη διαδρομή από τις Ρυθμίσεις.'
+          : 'Η εφαρμογή χρειάζεται την Python 3 (3.10 ή νεότερη, π.χ. sudo apt install python3 python3-tk). ' +
+            'Όρισε τη διαδρομή από τις Ρυθμίσεις.';
+
         const r = await api.dialog.message({
           type: 'warning',
-          title: 'Python 2.7',
-          message: info.error === 'notpy2'
-            ? `Η διαδρομή που έχει οριστεί είναι Python ${info.version}, όχι Python 2.7.`
-            : 'Δεν βρέθηκε η Python 2.7 στον υπολογιστή.',
-          detail: api.platform === 'win32'
-            ? 'Η εφαρμογή χρειάζεται την Python 2.7 (συνήθως στο C:\\Python27\\python.exe). Όρισε τη διαδρομή από τις Ρυθμίσεις.'
-            : info.installScript
-              ? `Η εφαρμογή χρειάζεται την Python 2.7. Για να την εγκαταστήσεις, άνοιξε ένα τερματικό και γράψε:\n\nsudo bash "${info.installScript}"\n\nΜετά ξεκίνα ξανά την εφαρμογή.`
-              : 'Η εφαρμογή χρειάζεται την Python 2.7 (συνήθως /usr/bin/python2.7). Σε Ubuntu 22.04: sudo apt install python2. ' +
-                'Σε νεότερες διανομές δες τις οδηγίες για Linux στο github.com/pliroforikos/myPython2. Όρισε τη διαδρομή από τις Ρυθμίσεις.',
-          buttons: ['Ρυθμίσεις…', 'Αργότερα'],
+          title: 'Python 3',
+          message,
+          detail,
+          buttons: ['Ρυθμίσεις…', 'Λήψη Python…', 'Αργότερα'],
           defaultId: 0,
         });
         if (r.response === 0) this.openSettings();
+        else if (r.response === 1) api.openExternal('https://www.python.org/downloads/');
       }
     },
 
@@ -659,8 +673,8 @@
         case 'no_python':
           this.running = false;
           this.renderTabs();
-          this.shell.stopped('Δεν βρέθηκε η Python 2.7. Όρισε τη διαδρομή της από Αρχείο → Ρυθμίσεις.');
-          this.setState('error', 'Δεν βρέθηκε Python 2.7');
+          this.shell.stopped('Δεν βρέθηκε η Python 3 (χρειάζεται 3.10+). Όρισε τη διαδρομή της από Αρχείο → Ρυθμίσεις.');
+          this.setState('error', 'Δεν βρέθηκε Python 3');
           break;
         default:
           break;
@@ -1127,9 +1141,19 @@
         status.textContent = 'Έλεγχος…';
         status.className = '';
         const r = await api.python.test($('#set-python').value.trim());
-        if (r.ok) { status.textContent = `✓ Python ${r.version}`; status.className = 'ok-text'; }
-        else if (r.error === 'notpy2') { status.textContent = `✗ Αυτή είναι η Python ${r.version}· χρειάζεται η 2.7`; status.className = 'bad-text'; }
-        else { status.textContent = '✗ Δεν βρέθηκε ή δεν εκτελείται'; status.className = 'bad-text'; }
+        if (r.ok) {
+          status.textContent = `✓ Python ${r.version}${r.tk ? '' : ' (χωρίς tkinter)'}`;
+          status.className = 'ok-text';
+        } else if (r.error === 'notpy3') {
+          status.textContent = `✗ Αυτή είναι η Python ${r.version}· χρειάζεται Python 3.10+`;
+          status.className = 'bad-text';
+        } else if (r.error === 'tooold') {
+          status.textContent = `✗ Η έκδοση ${r.version} είναι παλιά· χρειάζεται 3.10+`;
+          status.className = 'bad-text';
+        } else {
+          status.textContent = '✗ Δεν βρέθηκε ή δεν εκτελείται';
+          status.className = 'bad-text';
+        }
       };
       $('#set-python-test').onclick = test;
       $('#set-python-browse').onclick = async () => {

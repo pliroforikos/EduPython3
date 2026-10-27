@@ -212,7 +212,7 @@ ipcMain.handle('dialog:message', (_e, opts) => dialog.showMessageBox(win, { noLi
 ipcMain.handle('dialog:choosePython', async () => {
   const isWin = process.platform === 'win32';
   const r = await dialog.showOpenDialog(win, {
-    title: isWin ? 'Επιλογή python.exe (Python 2.7)' : 'Επιλογή Python 2.7 (π.χ. /usr/bin/python2.7)',
+    title: isWin ? 'Επιλογή python.exe (Python 3)' : 'Επιλογή Python 3 (π.χ. /usr/bin/python3)',
     defaultPath: settings.pythonPath || (isWin ? 'C:\\' : '/usr/bin'),
     filters: isWin ? [{ name: 'python.exe', extensions: ['exe'] }] : [],
     properties: ['openFile'],
@@ -233,21 +233,18 @@ ipcMain.handle('settings:set', (_e, patch) => {
 });
 ipcMain.handle('recall:get', () => fs.readFileSync(path.join(__dirname, '..', 'renderer', 'recall.md'), 'utf-8'));
 ipcMain.handle('python:info', () => {
-  // αν η Python 2.7 εγκαταστάθηκε μετά την πρώτη εκκίνηση, βρίσκεται τώρα
+  // αν η Python 3 εγκαταστάθηκε μετά την πρώτη εκκίνηση, βρίσκεται τώρα
   if (!settings.pythonPath || !fs.existsSync(settings.pythonPath)) {
     const found = findPython('');
     if (found) { settings.pythonPath = found; saveSettings(); }
   }
-  return pythonVersion(settings.pythonPath).then((v) => ({ ...v, path: settings.pythonPath, installScript: linuxInstallScript() }));
+  return pythonVersion(settings.pythonPath).then((v) => ({ ...v, path: settings.pythonPath }));
 });
 
-/** Linux: το script εγκατάστασης της Python 2.7 που συνοδεύει τα πακέτα (resources/install-python27.sh). */
-function linuxInstallScript() {
-  if (process.platform !== 'linux') return null;
-  const p = path.join(process.resourcesPath, 'install-python27.sh');
-  return fs.existsSync(p) ? p : null;
-}
 ipcMain.handle('python:test', (_e, p) => pythonVersion(p));
+ipcMain.on('openExternal', (_e, url) => {
+  if (typeof url === 'string' && /^https?:/.test(url)) shell.openExternal(url);
+});
 
 // --- Εκτέλεση -------------------------------------------------------------------
 ipcMain.on('backend:run', (_e, { path: p, source, trace }) => {
