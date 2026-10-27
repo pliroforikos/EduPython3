@@ -448,6 +448,13 @@ table.vars tr.fn .vval { color: var(--accent); }
   border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px;
 }
 .rc-search input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.rc-filter { display: flex; gap: 6px; padding: 6px 12px; background: var(--panel-head); border-bottom: 1px solid var(--border); }
+.rc-filter .rc-pill {
+  border: 1px solid var(--border); background: var(--bg); border-radius: 12px; padding: 2px 10px;
+  font-size: 11.5px; color: var(--muted); cursor: pointer; transition: all 0.15s ease;
+}
+.rc-filter .rc-pill:hover { color: var(--fg); border-color: var(--fg); }
+.rc-filter .rc-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
 .rc-list { padding-bottom: 16px; }
 .rc-cat-title {
   padding: 12px 12px 4px; font-size: 11.5px; font-weight: 600; text-transform: uppercase;
@@ -465,6 +472,16 @@ table.vars tr.fn .vval { color: var(--accent); }
 .rc-exam-mark {
   flex: none; font-size: 10px; font-weight: 700; line-height: 1; padding: 3px 4px; border-radius: 4px;
   color: var(--hint-fg); background: var(--hint-bg); border: 1px solid var(--hint-border);
+}
+.rc-level-mark {
+  flex: none; font-size: 10px; font-weight: 700; line-height: 1; padding: 3px 4px; border-radius: 4px;
+  color: var(--muted); background: var(--panel-head); border: 1px solid var(--border);
+}
+.rc-level-mark.adv {
+  color: #b36b00; background: rgba(255, 170, 0, 0.12); border-color: rgba(255, 170, 0, 0.3);
+}
+.rc-level-mark.basic {
+  color: #1f883d; background: rgba(31, 136, 61, 0.1); border-color: rgba(31, 136, 61, 0.25);
 }
 .rc-body { padding: 6px 12px 12px; border-bottom: 1px solid var(--border); }
 .rc-body p { margin: 6px 0; }

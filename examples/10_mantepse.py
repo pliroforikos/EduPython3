@@ -5,15 +5,15 @@ mystiko = random.randint(1, 100)
 prospatheies = 0
 vrethike = False
 
-print "Σκέφτηκα έναν αριθμό από το 1 έως το 100."
+print("Σκέφτηκα έναν αριθμό από το 1 έως το 100.")
 while not vrethike:
-    x = int(raw_input("Μάντεψε: "))
+    x = int(input("Μάντεψε: "))
     prospatheies = prospatheies + 1
     if x < mystiko:
-        print "Πιο μεγάλο!"
+        print("Πιο μεγάλο!")
     elif x > mystiko:
-        print "Πιο μικρό!"
+        print("Πιο μικρό!")
     else:
         vrethike = True
 
-print "Μπράβο! Το βρήκες σε", prospatheies, "προσπάθειες."
+print("Μπράβο! Το βρήκες σε", prospatheies, "προσπάθειες.")

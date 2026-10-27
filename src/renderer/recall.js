@@ -32,14 +32,14 @@
         open = null;
       } else if ((m = /^##\s+(.+)/.exec(line))) {
         if (!cat) { cat = { title: '', topics: [] }; cats.push(cat); }
-        topic = { id: `${cats.length}-${cat.topics.length + 1}`, title: m[1].trim(), exams: '', tags: '', blocks: [] };
+        topic = { id: `${cats.length}-${cat.topics.length + 1}`, title: m[1].trim(), exams: '', tags: '', level: 'βασικό', blocks: [] };
         cat.topics.push(topic);
         open = null;
       } else if (!topic) {
         continue;
       } else if ((m = /^###\s+(.+)/.exec(line))) {
         push({ type: 'h', text: m[1].trim() });
-      } else if ((m = /^@(exams|tags):\s*(.*)/.exec(line))) {
+      } else if ((m = /^@(exams|tags|level):\s*(.*)/.exec(line))) {
         topic[m[1]] = m[2].trim();
       } else if (!line.trim()) {
         open = null;
@@ -68,7 +68,7 @@
   }
 
   function topicText(t) {
-    const parts = [t.title, t.tags, t.exams];
+    const parts = [t.title, t.tags, t.exams, t.level || ''];
     for (const b of t.blocks) {
       if (b.text) parts.push(b.text);
       if (b.items) parts.push(...b.items);
@@ -84,6 +84,7 @@
       this.h = handlers || {};
       this.cats = null;
       this.loading = null;
+      this.levelFilter = 'all';
     }
 
     /** Φορτώνει το περιεχόμενο την πρώτη φορά που ανοίγει το πάνελ. */
@@ -105,11 +106,16 @@
       const n = this.cats.reduce((a, c) => a + c.topics.length, 0);
       this.el.innerHTML = `<div class="recall">
         <div class="rc-search"><input type="search" spellcheck="false" placeholder="Αναζήτηση σε ${n} θέματα (π.χ. μέγιστο, λίστα, while)…"></div>
+        <div class="rc-filter">
+          <button class="rc-pill active" data-lvl="all">Όλα</button>
+          <button class="rc-pill" data-lvl="βασικό">Βασικά</button>
+          <button class="rc-pill" data-lvl="προχωρημένο">Προχωρημένα</button>
+        </div>
         <div class="rc-list">${this.cats.map((c) => `
           <div class="rc-cat">
             <div class="rc-cat-title">${esc(c.title)}</div>
             ${c.topics.map((t) => `<details class="rc-topic" data-id="${t.id}">
-              <summary><span class="rc-title">${esc(t.title)}</span>${t.exams ? `<span class="rc-exam-mark" title="Πανελλήνιες ΕΠΑΛ: ${esc(t.exams)}">Π</span>` : ''}</summary>
+              <summary><span class="rc-title">${esc(t.title)}</span>${t.exams ? `<span class="rc-exam-mark" title="Πανελλήνιες ΕΠΑΛ: ${esc(t.exams)}">Π</span>` : ''}<span class="rc-level-mark ${t.level === 'προχωρημένο' ? 'adv' : 'basic'}" title="Επίπεδο: ${esc(t.level || 'βασικό')}">${t.level === 'προχωρημένο' ? 'Πρ' : 'Β'}</span></summary>
               <div class="rc-body"></div></details>`).join('')}
           </div>`).join('')}
           <div class="rc-none empty" hidden>Δεν βρέθηκε θέμα. Δοκίμασε άλλη λέξη.</div>
@@ -138,16 +144,27 @@
           if (first) first.open = true;
         }
       });
+      this.el.querySelectorAll('.rc-filter button').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          this.el.querySelectorAll('.rc-filter button').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          this.levelFilter = btn.dataset.lvl;
+          this.filter(input.value);
+        });
+      });
     }
 
     filter(q) {
-      const words = normalize(q).split(/\s+/).filter(Boolean);
+      const words = normalize(q || '').split(/\s+/).filter(Boolean);
+      const lvl = this.levelFilter || 'all';
       let any = false;
       this.el.querySelectorAll('.rc-cat').forEach((c) => {
         let catAny = false;
         c.querySelectorAll('details.rc-topic').forEach((d) => {
           const t = this.topics.get(d.dataset.id);
-          const ok = words.every((w) => t.search.includes(w));
+          const lvlOk = lvl === 'all' || (t.level || 'βασικό') === lvl;
+          const textOk = words.every((w) => t.search.includes(w));
+          const ok = lvlOk && textOk;
           d.hidden = !ok;
           catAny = catAny || ok;
         });

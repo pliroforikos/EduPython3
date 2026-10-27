@@ -4,7 +4,7 @@
 
 vathmoi = []
 for i in range(3)
-    v = float(raw_input("Βαθμός: "))
+    v = float(input("Βαθμός: "))
     vathmoi.append(v)
 
 athroisma = 0
@@ -12,6 +12,6 @@ for v in vathmoi:
     athroisma = athroisma + v
 
 mesos_oros = athroisma / len(vathmoi)
-print "Μέσος όρος: " + mesos_oros
-print "Μέγιστος βαθμός:", vathmoi[len(vathmoi)]
-print "Πλήθος βαθμών:", plithos
+print("Μέσος όρος: " + mesos_oros)
+print("Μέγιστος βαθμός:", vathmoi[len(vathmoi)])
+print("Πλήθος βαθμών:", plithos)

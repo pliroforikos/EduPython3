@@ -13,9 +13,9 @@ def isEmpty(queue):
 oura = []
 for pelatis in ['Μαρία', 'Κώστας', 'Δήμητρα']:
     enqueue(oura, pelatis)
-    print "Ήρθε:", pelatis, "  Ουρά:", len(oura), "άτομα"
+    print("Ήρθε:", pelatis, "  Ουρά:", len(oura), "άτομα")
 
-print
+print()
 while not isEmpty(oura):
-    print "Εξυπηρετείται:", dequeue(oura)
-print "Η ουρά άδειασε."
+    print("Εξυπηρετείται:", dequeue(oura))
+print("Η ουρά άδειασε.")

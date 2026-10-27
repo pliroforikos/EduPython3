@@ -21,10 +21,10 @@ cars = [('Fiat Punto', '2010', 'venzini', 1200, 85000, 4500.0),
 curs.executemany("INSERT INTO cars (firma, cyear, fuel, cc, km, price) VALUES (?, ?, ?, ?, ?, ?)", cars)
 conn.commit()
 
-print "Αυτοκίνητα κάτω από 6000 ευρώ, ταξινομημένα κατά τιμή:"
+print("Αυτοκίνητα κάτω από 6000 ευρώ, ταξινομημένα κατά τιμή:")
 curs.execute("SELECT firma, cyear, price FROM cars WHERE price < 6000 ORDER BY price")
 for row in curs.fetchall():
-    print row[0], "(" + row[1] + "):", row[2], "ευρώ"
+    print(row[0], "(" + row[1] + "):", row[2], "ευρώ")
 
 curs.close()
 conn.close()

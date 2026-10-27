@@ -14,13 +14,13 @@ def createStack():
 
 
 stack = createStack()
-print "Δώσε αριθμούς (0 για τέλος):"
-number = int(raw_input())
+print("Δώσε αριθμούς (0 για τέλος):")
+number = int(input())
 while number != 0:
     push(stack, number)
-    number = int(raw_input())
+    number = int(input())
 
-print "Οι αριθμοί με αντίστροφη σειρά:"
+print("Οι αριθμοί με αντίστροφη σειρά:")
 while not isEmpty(stack):
     number = pop(stack)
-    print number
+    print(number)

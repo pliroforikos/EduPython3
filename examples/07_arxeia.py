@@ -1,24 +1,24 @@
 # Παράδειγμα: 7. Εγγραφή και ανάγνωση αρχείου (κεφ. 6)
 # Το αρχείο vathmoi.txt δημιουργείται στον ίδιο φάκελο με το πρόγραμμα.
 
-f = open("vathmoi.txt", "w")
+f = open("vathmoi.txt", "w", encoding="utf-8")
 for i in range(3):
-    onoma = raw_input("Όνομα μαθητή: ")
-    vathmos = raw_input("Βαθμός: ")
+    onoma = input("Όνομα μαθητή: ")
+    vathmos = input("Βαθμός: ")
     f.write(onoma + "," + vathmos + "\n")
 f.close()
 
-print
-print "Περιεχόμενα του αρχείου:"
+print()
+print("Περιεχόμενα του αρχείου:")
 athroisma = 0
 plithos = 0
-f = open("vathmoi.txt", "r")
+f = open("vathmoi.txt", "r", encoding="utf-8")
 for grammi in f:
     stoixeia = grammi.rstrip().split(",")
-    print stoixeia[0], "->", stoixeia[1]
+    print(stoixeia[0], "->", stoixeia[1])
     athroisma = athroisma + float(stoixeia[1])
     plithos = plithos + 1
 f.close()
 
 if plithos > 0:
-    print "Μέσος όρος: %.2f" % (athroisma / plithos)
+    print("Μέσος όρος: %.2f" % (athroisma / plithos))

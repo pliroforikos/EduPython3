@@ -118,7 +118,7 @@ sudo apt install python3 python3-tk
 ```
 npm install
 npm start          # εκκίνηση
-npm test           # tests (Node + Python 2.7)
+npm test           # tests (Node + Python 3)
 npm run dist       # δημιουργία installer και portable .exe
 npm run dist:linux # δημιουργία .deb και .tar.gz για Linux (χτίζεται και από Windows)
 ```
@@ -128,7 +128,7 @@ npm run dist:linux # δημιουργία .deb και .tar.gz για Linux (χτ
 
 | Αρχείο | Ρόλος |
 |---|---|
-| `backend/runner.py` | Εκτελεί το πρόγραμμα σε Python 2.7, πρωτόκολλο JSON-lines (έξοδος, είσοδος, λάθη, μεταβλητές, REPL) |
+| `backend/runner.py` | Εκτελεί το πρόγραμμα σε Python 3, πρωτόκολλο JSON-lines (έξοδος, είσοδος, λάθη, μεταβλητές, REPL) |
 | `backend/checker.py` | Ζωντανός έλεγχος σύνταξης |
 | `backend/_epal_util.py` | Κοινά: επιλογή κωδικοποίησης, compile χωρίς δήλωση coding |
 | `src/main/` | Electron main: παράθυρο, μενού, αρχεία, διεργασίες Python |
@@ -136,13 +136,13 @@ npm run dist:linux # δημιουργία .deb και .tar.gz για Linux (χτ
 | `src/renderer/teacher.*` | «Τάξη»: η οθόνη του καθηγητή |
 | `src/renderer/present.js` | «Τάξη»: η παρουσίαση του καθηγητή στην οθόνη του μαθητή |
 | `build/installer.nsh` | Installer: κανόνας firewall, `/CLASSROOM=` |
-| `src/renderer/editor.js` | Monaco: γλώσσα Python 2, θέματα IDLE, autocomplete, hovers |
+| `src/renderer/editor.js` | Monaco: γλώσσα Python 3, θέματα IDLE, autocomplete, hovers |
 | `src/renderer/shell.js` | Shell τύπου Thonny |
 | `src/renderer/errorHelp.js` | Ο Βοηθός λαθών (κανόνες και ελληνικά κείμενα) |
 | `src/renderer/pydocs.js` | Ελληνική τεκμηρίωση για autocomplete/hovers |
 | `src/renderer/recall.md`, `recall.js` | «Θέλω να θυμηθώ»: περιεχόμενο (markdown) και πάνελ |
 | `scripts/build-linux.js` | Πακέτα Linux (.deb, .tar.gz) χωρίς fpm, ώστε να χτίζονται και από Windows |
-| `scripts/linux/` | Εγκατάσταση της Python 2.7 σε Linux και εκκινητής της έκδοσης χωρίς εγκατάσταση |
+| `scripts/linux/` | Εκκινητής της έκδοσης Linux χωρίς εγκατάσταση |
 
 ## Άδεια χρήσης
 

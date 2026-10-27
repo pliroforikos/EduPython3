@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 # Παράδειγμα: 8. Tkinter - ζάρι (κεφ. 9.3)
-from Tkinter import *
+from tkinter import *
 from random import randint
 
 window = Tk()

@@ -6,11 +6,11 @@
   const ES = () => root.EditorSetup;
 
   const STARTER = [
-    '# Το πρώτο μου πρόγραμμα σε Python 2.7',
+    '# Το πρώτο μου πρόγραμμα σε Python 3',
     '# Πάτησε F5 ή το πράσινο κουμπί «Εκτέλεση».',
     '',
-    'onoma = raw_input("Πώς σε λένε; ")',
-    'print "Γεια σου,", onoma',
+    'onoma = input("Πώς σε λένε; ")',
+    'print("Γεια σου,", onoma)',
     '',
   ].join('\n');
 
