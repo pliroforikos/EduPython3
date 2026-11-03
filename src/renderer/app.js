@@ -615,7 +615,7 @@
         this.vars.empty('Το πρόγραμμα διακόπηκε· οι μεταβλητές του χάθηκαν.');
       } else {
         this.shell.stopped('Επανεκκίνηση του Shell.');
-        this.vars.empty('Οι μεταβλητές του προγράμματος θα εμφανιστούν εδώ μετά την εκτέλεση.');
+        this.vars.empty('Οι μεταβλητές του προγράμματος θα εμφανιστούν εδώ όταν το εκτελέσεις.');
       }
       this.setState('idle');
       this.startShell();
@@ -655,7 +655,7 @@
           }
           break;
         case 'globals':
-          this.vars.update(msg.vars || []);
+          this.vars.update(msg.vars || [], msg.locals, msg.func);
           break;
         case 'step':
           this.onStep(msg);

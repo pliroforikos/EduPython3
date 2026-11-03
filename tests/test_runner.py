@@ -123,6 +123,42 @@ class RunnerTest(unittest.TestCase):
         g = self.s.last_globals()
         self.assertEqual(g['αποτέλεσμα']['repr'], '20')
 
+    def _globals_before(self, nth_input):
+        """Οι τελευταίες μεταβλητές που στάλθηκαν πριν από το nth_input-οστό input_request (από 1)."""
+        seen = 0
+        last = None
+        for m in self.s.messages:
+            if m['type'] == 'globals':
+                last = m
+            elif m['type'] == 'input_request':
+                seen += 1
+                if seen == nth_input:
+                    return last
+        return None
+
+    def test_live_vars_before_input(self):
+        self.run_code("total = 0\nfor i in range(2):\n    total += int(input())\nprint(total)\n",
+                      inputs=['5', '7'])
+        self.assertEqual(self.s.output(), '12\n')
+        g = {v['name']: v for v in self._globals_before(2)['vars']}
+        self.assertEqual(g['total']['repr'], '5')
+        self.assertEqual(self.s.last_globals()['total']['repr'], '12')
+
+    def test_live_locals_in_function(self):
+        self.run_code("def f(n):\n    k = n * 2\n    return input()\nf(3)\n", inputs=['x'])
+        m = self._globals_before(1)
+        self.assertEqual(m['func'], 'f')
+        loc = {v['name']: v for v in m['locals']}
+        self.assertEqual(loc['k']['repr'], '6')
+        self.assertNotIn('locals', [m for m in self.s.messages if m['type'] == 'globals'][-1])
+
+    def test_live_vars_periodic(self):
+        self.run_code("import time\nx = 1\ntime.sleep(1.2)\nx = 2\n")
+        done = [i for i, m in enumerate(self.s.messages) if m['type'] == 'done'][0]
+        early = [m for m in self.s.messages[:done] if m['type'] == 'globals']
+        self.assertTrue(early, 'καμία ενημέρωση μεταβλητών όσο έτρεχε το πρόγραμμα')
+        self.assertEqual({v['name']: v for v in early[0]['vars']}['x']['repr'], '1')
+
     def test_syntax_error_location(self):
         self.run_code("x = 1\nif x > 0\n    print(x)\n")
         err = self.s.errors()[0]

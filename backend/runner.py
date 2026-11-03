@@ -215,6 +215,7 @@ class InStream:
         return 'utf-8'
 
     def readline(self, size=-1):
+        LIVE.send(sys._getframe())
         send({'type': 'input_request'})
         msg = wait_cmd(('input',))
         text = msg.get('text', '')
@@ -249,6 +250,7 @@ def _edu_input(prompt=''):
     if prompt:
         sys.stdout.write(str(prompt))
         sys.stdout.flush()
+    LIVE.send(sys._getframe())
     send({'type': 'input_request'})
     msg = wait_cmd(('input',))
     text = msg.get('text', '')
@@ -552,6 +554,69 @@ def _global_trace(frame, event, arg):
     return None
 
 
+# --- Ζωντανές μεταβλητές (κανονική ταχύτητα) ----------------------------------
+def _student_frame(frame):
+    """Το πιο εσωτερικό σημείο του προγράμματος του μαθητή (όχι βιβλιοθήκη ή ο runner)."""
+    while frame is not None and frame.f_code.co_filename != S.prog_path:
+        frame = frame.f_back
+    return frame
+
+
+class _LiveVars:
+    """Χωρίς βήμα-βήμα, οι μεταβλητές στέλνονται όσο τρέχει το πρόγραμμα: πριν από κάθε
+    είσοδο και περιοδικά από νήμα, μόνο όταν άλλαξαν. Χωρίς sys.settrace, που θα το επιβράδυνε."""
+
+    INTERVAL = 0.5
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.ns = None
+        self.thread_id = None
+        self.last = None
+
+    def start(self, ns):
+        with self.lock:
+            self.ns = ns
+            self.thread_id = threading.get_ident()
+            self.last = None
+
+    def stop(self):
+        # μετά από εδώ δεν φεύγει άλλο στιγμιότυπο, ώστε να μην έρθει μετά τις τελικές μεταβλητές
+        with self.lock:
+            self.ns = None
+
+    def send(self, frame=None):
+        with self.lock:
+            if self.ns is None or TRACE.mode != 'off':
+                return
+            if frame is None:
+                frame = sys._current_frames().get(self.thread_id)
+            frame = _student_frame(frame)
+            try:
+                msg = {'type': 'globals', 'vars': describe_globals(self.ns)}
+                if frame is not None and frame.f_code.co_name != '<module>' and frame.f_locals is not self.ns:
+                    msg['func'] = frame.f_code.co_name
+                    msg['locals'] = describe_globals(frame.f_locals)
+                key = json.dumps(msg)
+            except Exception:
+                return      # π.χ. λεξικό που άλλαξε την ώρα που το διαβάζαμε· θα σταλεί την επόμενη φορά
+            if key == self.last:
+                return
+            self.last = key
+            send(msg)
+
+    def loop(self):
+        while True:
+            time.sleep(self.INTERVAL)
+            try:
+                self.send()
+            except Exception:
+                pass
+
+
+LIVE = _LiveVars()
+
+
 # --- Εκτέλεση ---------------------------------------------------------------
 def make_namespace(path_str):
     ns = {'__name__': '__main__', '__builtins__': builtins, '__doc__': None}
@@ -596,6 +661,7 @@ def run_program(msg):
         if trace and trace.get('mode', 'off') != 'off':
             TRACE.command(dict(trace, cmd='trace'))
             sys.settrace(_global_trace)
+        LIVE.start(ns)
         try:
             exec(code, ns)
             ok = True
@@ -609,6 +675,7 @@ def run_program(msg):
         except BaseException:
             report_exception('run', text)
         finally:
+            LIVE.stop()
             sys.settrace(None)
     _pump_tk()
     send({'type': 'done', 'ok': ok})
@@ -655,7 +722,7 @@ def main():
     sys.stderr = OutStream('stderr')
     sys.stdin = InStream()
     builtins.input = _edu_input
-    for target in (_reader, _flusher):
+    for target in (_reader, _flusher, LIVE.loop):
         t = threading.Thread(target=target)
         t.daemon = True
         t.start()

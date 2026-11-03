@@ -30,7 +30,7 @@
       this.prev = new Map();
       this.selected = null;
       this.vars = [];
-      this.empty('Οι μεταβλητές του προγράμματος θα εμφανιστούν εδώ μετά την εκτέλεση.');
+      this.empty('Οι μεταβλητές του προγράμματος θα εμφανιστούν εδώ όταν το εκτελέσεις.');
     }
 
     empty(text) {
@@ -55,7 +55,7 @@
         </tr>`;
     }
 
-    /** locals/func: κατά την εκτέλεση βήμα-βήμα, οι τοπικές μεταβλητές της συνάρτησης που εκτελείται. */
+    /** locals/func: όσο τρέχει το πρόγραμμα, οι τοπικές μεταβλητές της συνάρτησης που εκτελείται. */
     update(vars, locals, func) {
       const loc = (locals || []).map((v) => ({ ...v, key: `local:${v.name}` }));
       vars = loc.concat(vars);
@@ -65,7 +65,7 @@
         this.prev = new Map();
         return;
       }
-      // πρώτα οι τοπικές (βήμα-βήμα), μετά τα δεδομένα, μετά οι συναρτήσεις σε δική τους ομάδα
+      // πρώτα οι τοπικές (όταν εκτελείται συνάρτηση), μετά τα δεδομένα, μετά οι συναρτήσεις σε δική τους ομάδα
       const glob = vars.filter((v) => !v.key);
       const data = glob.filter((v) => v.kind !== 'function');
       const funcs = glob.filter((v) => v.kind === 'function');
