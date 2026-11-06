@@ -67,6 +67,7 @@ class _State:
     last_input = None
     sources = {}            # όνομα αρχείου (str) -> λίστα str γραμμών
     star_modules = set()    # modules από `from X import *`
+    data = None             # γραμμές του αρχείου δεδομένων (λίστα str) ή None
 
 
 S = _State()
@@ -206,6 +207,20 @@ def wait_cmd(accept):
             return msg
 
 
+def next_data_line():
+    """Η επόμενη τιμή από το αρχείο δεδομένων, ή None όταν πρέπει να ρωτηθεί ο χρήστης
+    (δεν υπάρχει αρχείο, τελείωσε, ή η γραμμή ήταν «?»)."""
+    if not S.data:
+        return None
+    line = S.data.pop(0)
+    if line == '?':
+        return None
+    # η τιμή εμφανίζεται στο Shell σαν να πληκτρολογήθηκε (με πλάγια γράμματα)
+    OUTPUT.add('data', line + '\n')
+    S.last_input = line
+    return line
+
+
 class InStream:
     closed = False
     mode = 'r'
@@ -215,6 +230,9 @@ class InStream:
         return 'utf-8'
 
     def readline(self, size=-1):
+        line = next_data_line()
+        if line is not None:
+            return line + '\n'
         LIVE.send(sys._getframe())
         send({'type': 'input_request'})
         msg = wait_cmd(('input',))
@@ -250,6 +268,9 @@ def _edu_input(prompt=''):
     if prompt:
         sys.stdout.write(str(prompt))
         sys.stdout.flush()
+    line = next_data_line()
+    if line is not None:
+        return line
     LIVE.send(sys._getframe())
     send({'type': 'input_request'})
     msg = wait_cmd(('input',))
@@ -447,6 +468,40 @@ def function_signature(name, func):
     return f'{name}(…)'
 
 
+MAX_CELLS = 200     # στοιχεία λίστας που στέλνονται για τον πίνακα του πάνελ μεταβλητών
+MAX_COLS = 40
+
+
+def seq_view(v):
+    """Τα στοιχεία μιας λίστας/πλειάδας/λεξικού/συνόλου ξεχωριστά, για να τα δείξει το πάνελ ως πίνακα.
+    Λίστα από λίστες δίνει και 'grid' (δισδιάστατος πίνακας)."""
+    t = type(v)
+    if t in (list, tuple):
+        head = v[:MAX_CELLS]
+        view = {'items': [friendly_repr(x, 2) for x in head], 'more': len(v) > MAX_CELLS}
+        if head and all(type(x) in (list, tuple) for x in head):
+            width = max(len(r) for r in head)
+            if 0 < width <= MAX_COLS:
+                view['grid'] = [[friendly_repr(c, 3) for c in r] for r in head]
+                view['cols'] = width
+        return view
+    if t is dict:
+        pairs = []
+        for i, (k, x) in enumerate(v.items()):
+            if i >= MAX_CELLS:
+                break
+            pairs.append([friendly_repr(k, 2), friendly_repr(x, 2)])
+        return {'pairs': pairs, 'more': len(v) > MAX_CELLS}
+    if t in (set, frozenset):
+        items = []
+        for i, x in enumerate(v):
+            if i >= MAX_CELLS:
+                break
+            items.append(friendly_repr(x, 2))
+        return {'items': items, 'more': len(v) > MAX_CELLS}
+    return None
+
+
 def describe_globals(ns):
     hidden = _imported_names(ns)
     out = []
@@ -474,6 +529,13 @@ def describe_globals(ns):
                 item['len'] = len(v)
             except TypeError:
                 pass
+        if type(v) in (list, tuple, dict, set, frozenset):
+            try:
+                view = seq_view(v)
+            except Exception:
+                view = None
+            if view:
+                item['seq'] = view
         out.append(item)
     return out
 
@@ -636,6 +698,17 @@ def setup_folder(folder):
             sys.path.insert(0, folder)
 
 
+def data_lines(text):
+    """Γραμμές ενός αρχείου δεδομένων: αγνοούνται οι κενές γραμμές και τα σχόλια (#).
+    Μια γραμμή με σκέτο «?» σημαίνει «σε αυτό το σημείο ρώτα τον χρήστη»."""
+    out = []
+    for raw in (text or '').lstrip('\ufeff').splitlines():
+        line = raw.strip()
+        if line and not line.startswith('#'):
+            out.append(line)
+    return out
+
+
 def run_program(msg):
     path_str = msg.get('path') or '<χωρίς όνομα>'
     text = msg.get('source', '')
@@ -648,6 +721,15 @@ def run_program(msg):
     ns = make_namespace(S.prog_path)
     register_source(S.prog_path, text)
     send({'type': 'started', 'encoding': 'utf-8', 'reason': 'python3', 'cwd': os.getcwd()})
+
+    # Αρχείο δεδομένων: { name, text } — η input() παίρνει πρώτα τις τιμές του, με τη σειρά
+    data = msg.get('data')
+    S.data = data_lines(data.get('text')) if data else None
+    if S.data is not None:
+        n = len([l for l in S.data if l != '?'])
+        OUTPUT.add('info', f"\U0001F4C4 Η input() παίρνει τιμές από το αρχείο «{data.get('name') or ''}» "
+                           f"({n} {'γραμμή' if n == 1 else 'γραμμές'}). "
+                           'Όταν τελειώσουν, οι τιμές δίνονται από το πληκτρολόγιο.\n')
 
     ok = False
     code = None
@@ -677,6 +759,7 @@ def run_program(msg):
         finally:
             LIVE.stop()
             sys.settrace(None)
+    S.data = None   # στο Shell (>>>) οι τιμές ζητούνται πάντα από το πληκτρολόγιο
     _pump_tk()
     send({'type': 'done', 'ok': ok})
     send_globals(ns)

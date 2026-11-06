@@ -8,11 +8,15 @@ const { decodeBuffer, encodeForSave } = require('./encoding');
 const { buildMenu, examplesDir } = require('./menu');
 const { TeacherServer, StudentClient, loadTrust, buildTrustFile, trustFilePath, lanAddresses, newPin, teacherModeAllowed } = require('./classroom');
 const { generateIdentity, fingerprint } = require('./classroomCert');
+const { Updater } = require('./updater');
+const Themes = require('../renderer/themes');
 
 const DEFAULT_SETTINGS = {
   pythonPath: '',
   fontSize: 16,
   theme: 'light',
+  editorFont: 'default',
+  uiFont: 'default',
   stringEncoding: 'utf-8',
   greekNames: 'warn',
   saveBeforeRun: true,
@@ -24,6 +28,7 @@ const DEFAULT_SETTINGS = {
   showRecall: false,
   runSpeed: 'normal',
   liveCheck: true,
+  autoUpdateCheck: true,
   openFiles: [],
   activeFile: null,
   recentFiles: [],
@@ -188,21 +193,42 @@ ipcMain.handle('file:open', async () => {
   return r.filePaths.map((p) => { const s = readSource(p); addRecent(p); return s; });
 });
 
+// --- Αρχείο δεδομένων: οι input του προγράμματος παίρνουν τιμές από αυτό -----------
+const DATA_FILTERS = [
+  { name: 'Αρχεία δεδομένων (*.txt, *.dat, *.csv)', extensions: ['txt', 'dat', 'csv'] },
+  { name: 'Όλα τα αρχεία', extensions: ['*'] },
+];
+
+ipcMain.handle('data:choose', async (_e, dir) => {
+  const r = await dialog.showOpenDialog(win, {
+    title: 'Αρχείο δεδομένων για τις input του προγράμματος',
+    defaultPath: dir || workDir(),
+    filters: DATA_FILTERS,
+    properties: ['openFile'],
+  });
+  if (r.canceled || !r.filePaths.length) return null;
+  return r.filePaths[0];
+});
+
 ipcMain.handle('file:read', (_e, p) => {
   try { return readSource(p); } catch (e) { return { error: e.message }; }
 });
 
 ipcMain.handle('file:save', (_e, p, content) => writeSource(p, content));
 
-ipcMain.handle('file:saveAs', async (_e, content, suggested) => {
+ipcMain.handle('file:saveAs', async (_e, content, suggested, kind) => {
+  // kind 'data': αρχείο δεδομένων για τις input → τύπος .txt
+  const isData = kind === 'data';
   const r = await dialog.showSaveDialog(win, {
-    title: 'Αποθήκευση προγράμματος',
-    defaultPath: suggested && path.isAbsolute(suggested) ? suggested : path.join(workDir(), suggested || 'πρόγραμμα.py'),
-    filters: PY_FILTERS,
+    title: isData ? 'Αποθήκευση αρχείου δεδομένων' : 'Αποθήκευση προγράμματος',
+    defaultPath: suggested && path.isAbsolute(suggested)
+      ? suggested
+      : path.join(workDir(), suggested || (isData ? 'δεδομένα.txt' : 'πρόγραμμα.py')),
+    filters: isData ? DATA_FILTERS : PY_FILTERS,
   });
   if (r.canceled || !r.filePath) return null;
   let p = r.filePath;
-  if (!path.extname(p)) p += '.py';
+  if (!path.extname(p)) p += isData ? '.txt' : '.py';
   return writeSource(p, content);
 });
 
@@ -246,7 +272,7 @@ ipcMain.handle('settings:set', (_e, patch) => {
   const pythonChanged = patch.pythonPath !== undefined && patch.pythonPath !== settings.pythonPath;
   settings = { ...settings, ...patch };
   saveSettings();
-  if (['theme', 'minimap', 'wordWrap', 'showWhitespace', 'showVariables', 'showAssistant', 'showRecall', 'runSpeed', 'stringEncoding']
+  if (['theme', 'editorFont', 'uiFont', 'minimap', 'wordWrap', 'showWhitespace', 'showVariables', 'showAssistant', 'showRecall', 'runSpeed', 'stringEncoding']
     .some((k) => k in patch)) refreshMenu();
   if (pythonChanged) checker.reset();
   return settings;
@@ -267,8 +293,8 @@ ipcMain.on('openExternal', (_e, url) => {
 });
 
 // --- Εκτέλεση -------------------------------------------------------------------
-ipcMain.on('backend:run', (_e, { path: p, source, trace }) => {
-  backend.run({ path: p, source, encoding: settings.stringEncoding, trace });
+ipcMain.on('backend:run', (_e, { path: p, source, trace, data }) => {
+  backend.run({ path: p, source, encoding: settings.stringEncoding, trace, data });
 });
 ipcMain.on('backend:trace', (_e, opts) => backend.trace(opts));
 ipcMain.on('backend:step', () => backend.step());
@@ -279,6 +305,15 @@ ipcMain.on('backend:repl', (_e, line) => backend.repl(line));
 ipcMain.handle('check', (_e, source) => checker.check(source, settings.stringEncoding, settings.greekNames));
 
 ipcMain.on('app:closeNow', () => { forceClose = true; if (win) win.close(); });
+
+// --- Ενημερώσεις από το GitHub (δες updater.js) --------------------------------------
+const updater = new Updater({
+  owner: 'pliroforikos',
+  repo: 'EduPython3',
+  getWin: () => win,
+  beforeInstall: () => { forceClose = true; },
+});
+updater.register();
 
 // --- Τάξη: μαθητής ----------------------------------------------------------------
 let student = null;
@@ -402,7 +437,7 @@ function openTeacherWindow() {
     minWidth: 700,
     minHeight: 480,
     title: 'Τάξη – EduPython3',
-    backgroundColor: settings.theme === 'dark' ? '#1e1f22' : '#ffffff',
+    backgroundColor: Themes.get(settings.theme).window,
     icon: path.join(__dirname, '..', 'renderer', 'icon.png'),
     autoHideMenuBar: true,
     webPreferences: {
@@ -506,7 +541,7 @@ function createWindow() {
     minWidth: 760,
     minHeight: 480,
     title: 'EduPython3',
-    backgroundColor: settings.theme === 'dark' ? '#1e1f22' : '#ffffff',
+    backgroundColor: Themes.get(settings.theme).window,
     icon: path.join(__dirname, '..', 'renderer', 'icon.png'),
     show: false,
     webPreferences: {
@@ -593,6 +628,12 @@ if (!gotLock) {
     loadSettings();
     refreshMenu();
     createWindow();
+    // Έλεγχος για νέα έκδοση λίγο μετά την εκκίνηση (όχι στο dev, εκτός αν ζητηθεί με EPAL_UPDATE_CHECK=1)
+    win.webContents.once('did-finish-load', () => {
+      setTimeout(() => {
+        if (settings.autoUpdateCheck !== false && (app.isPackaged || process.env.EPAL_UPDATE_CHECK)) updater.check(false);
+      }, 8000);
+    });
     const file = process.argv.slice(1).find((a) => /\.pyw?$/i.test(a) && fs.existsSync(a));
     if (file) win.webContents.once('did-finish-load', () => sendMenu('openPath', path.resolve(file)));
   });

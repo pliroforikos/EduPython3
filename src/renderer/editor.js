@@ -83,6 +83,27 @@
     });
   }
 
+  /** Κανόνες χρωμάτων των θεμάτων τύπου Android Studio (syn: δες themes.js). */
+  function pyRules(s) {
+    return [
+      { token: '', foreground: s.text },
+      { token: 'keyword', foreground: s.kw },
+      { token: 'keyword.constant', foreground: s.kw },
+      { token: 'predefined', foreground: s.builtin },
+      { token: 'string', foreground: s.str },
+      { token: 'string.escape', foreground: s.esc },
+      { token: 'comment', foreground: s.com, fontStyle: 'italic' },
+      { token: 'entity.name.function', foreground: s.fn },
+      { token: 'number', foreground: s.num },
+      { token: 'number.hex', foreground: s.num },
+      { token: 'operator', foreground: s.op },
+      { token: 'delimiter', foreground: s.op },
+      { token: 'tag', foreground: s.deco },
+      { token: 'invalid', foreground: s.invalid, fontStyle: 'underline bold' },
+    ];
+  }
+
+
   function defineThemes(monaco) {
     // Χρώματα του IDLE, όπως στο βιβλίο
     monaco.editor.defineTheme('idle-light', {
@@ -136,6 +157,7 @@
         'editorGutter.background': '#1E1F22',
       },
     });
+    if (root.Themes) root.Themes.defineMonaco(monaco, pyRules);
   }
 
   // ------------------------------------------------------------ autocomplete
@@ -267,9 +289,10 @@
   function editorOptions(settings) {
     return {
       language: LANG,
-      theme: settings.theme === 'dark' ? 'idle-dark' : 'idle-light',
+      theme: root.Themes ? root.Themes.get(settings.theme).monaco : 'idle-light',
       fontSize: settings.fontSize,
-      fontFamily: "'Cascadia Mono', Consolas, 'DejaVu Sans Mono', 'Ubuntu Mono', 'Liberation Mono', 'Courier New', monospace",
+      // JetBrains Mono: προαιρετική γραμματοσειρά των Ρυθμίσεων· αλλιώς η προεπιλεγμένη της εφαρμογής
+      fontFamily: root.Themes && settings.editorFont && settings.editorFont !== 'default' ? root.Themes.monoStack(settings.editorFont) : "'Cascadia Mono', Consolas, 'DejaVu Sans Mono', 'Ubuntu Mono', 'Liberation Mono', 'Courier New', monospace",
       fontLigatures: false,
       automaticLayout: true,
       tabSize: 4,

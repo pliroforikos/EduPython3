@@ -1,6 +1,7 @@
 'use strict';
 const { Menu, app } = require('electron');
 const path = require('path');
+const Themes = require('../renderer/themes');
 
 /**
  * Ελληνικό μενού. Οι εντολές του editor (αναίρεση, εύρεση κ.λπ.) δεν δεσμεύουν
@@ -68,7 +69,22 @@ function buildMenu({ send, settings, examples, recent, openRecent, classroom = {
         cmd('zoomOut', 'Μικρότερα γράμματα', 'CmdOrCtrl+-'),
         cmd('zoomReset', 'Κανονικό μέγεθος', 'CmdOrCtrl+0'),
         { type: 'separator' },
-        cmd('toggleTheme', 'Σκοτεινό θέμα', '', { type: 'checkbox', checked: settings.theme === 'dark' }),
+        {
+          label: 'Θέμα εμφάνισης',
+          submenu: Themes.LIST.flatMap((t, i, all) => [
+            ...(i > 0 && all[i - 1].group !== t.group ? [{ type: 'separator' }] : []),
+            cmd('theme:' + t.id, t.label, '', { type: 'radio', checked: Themes.get(settings.theme).id === t.id }),
+          ]),
+        },
+        cmd('toggleTheme', 'Αλλαγή φωτεινό ↔ σκοτεινό', 'CmdOrCtrl+Shift+T'),
+        {
+          label: 'Γραμματοσειρά κώδικα',
+          submenu: Themes.FONTS.mono.map((f) => cmd('font-mono:' + f.id, f.label, '', { type: 'radio', checked: (settings.editorFont || 'default') === f.id })),
+        },
+        {
+          label: 'Γραμματοσειρά περιβάλλοντος',
+          submenu: Themes.FONTS.ui.map((f) => cmd('font-ui:' + f.id, f.label, '', { type: 'radio', checked: (settings.uiFont || 'default') === f.id })),
+        },
         cmd('toggleMinimap', 'Μικρογραφία κώδικα (minimap)', '', { type: 'checkbox', checked: settings.minimap }),
         cmd('toggleWrap', 'Αναδίπλωση μεγάλων γραμμών', 'Alt+Z', { type: 'checkbox', checked: settings.wordWrap }),
         cmd('toggleWhitespace', 'Εμφάνιση κενών', '', { type: 'checkbox', checked: settings.showWhitespace }),
@@ -88,6 +104,9 @@ function buildMenu({ send, settings, examples, recent, openRecent, classroom = {
             { type: 'radio', checked: (settings.runSpeed || 'normal') === id })),
         },
         cmd('step', 'Επόμενη γραμμή (βήμα-βήμα)', 'F10'),
+        { type: 'separator' },
+        cmd('dataChoose', 'Δεδομένα για τις input (με γεννήτρια τιμών)…', ''),
+        cmd('dataRemove', 'Απενεργοποίηση αρχείου δεδομένων (τιμές από το πληκτρολόγιο)', ''),
         { type: 'separator' },
         cmd('clearShell', 'Καθαρισμός Shell', ''),
       ],
@@ -122,6 +141,7 @@ function buildMenu({ send, settings, examples, recent, openRecent, classroom = {
       submenu: [
         cmd('help', 'Οδηγός χρήσης', 'F1'),
         cmd('shortcuts', 'Συντομεύσεις πληκτρολογίου', ''),
+        cmd('checkUpdate', 'Έλεγχος για ενημέρωση…', ''),
         { type: 'separator' },
         cmd('about', `Σχετικά (έκδοση ${app.getVersion()})`, ''),
       ],

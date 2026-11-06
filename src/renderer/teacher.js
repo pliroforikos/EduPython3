@@ -52,9 +52,13 @@
     async init(monaco) {
       this.monaco = monaco;
       const settings = await api.settings.get();
-      document.body.className = `teacher ${settings.theme === 'dark' ? 'theme-dark' : 'theme-light'}`;
+      this.themeId = settings.theme;
+      this.editorFont = settings.editorFont;
+      await root.Themes.applyFonts(document, settings);
+      document.body.classList.add('teacher');
+      root.Themes.applyToBody(document.body, settings.theme);
       ES().init(monaco);
-      this.theme = settings.theme === 'dark' ? 'idle-dark' : 'idle-light';
+      this.theme = root.Themes.get(settings.theme).monaco;
       monaco.editor.setTheme(this.theme);   // και για τα χρώματα της προεπισκόπησης στις κάρτες
       this.defaultFont = settings.fontSize;
       // μέγεθος γραμμάτων και αναδίπλωση της προβολής κώδικα: ρυθμίσεις του καθηγητή, θυμούνται την τελευταία επιλογή
@@ -325,7 +329,7 @@
       if (!s) return;
       if (!this.editor) {
         this.editor = this.monaco.editor.create($('#t-editor'), {
-          ...ES().editorOptions({ theme: document.body.classList.contains('theme-dark') ? 'dark' : 'light', fontSize: this.fontSize, minimap: true, wordWrap: this.wordWrap }),
+          ...ES().editorOptions({ theme: this.themeId, editorFont: this.editorFont, fontSize: this.fontSize, minimap: true, wordWrap: this.wordWrap }),
           readOnly: true,
           domReadOnly: true,
           model: this.monaco.editor.createModel('', ES().LANG),

@@ -44,6 +44,23 @@
   const samePath =(a, b) => !!a && !!b && a.replace(/\//g, '\\').toLowerCase() === b.replace(/\//g, '\\').toLowerCase();
   const baseName = (p) => p.split(/[\\/]/).pop();
 
+  const dirName = (p) => p.replace(/[\\/][^\\/]*$/, '');
+  /** Κλειδί προγράμματος για τη μνήμη «πρόγραμμα → αρχείο δεδομένων» (ίδιο για / και \, κεφαλαία/πεζά). */
+  const pathKey = (p) => p.replace(/\//g, '\\').toLowerCase();
+  /** Περιεχόμενο νέου αρχείου δεδομένων: οδηγίες σε σχόλια (#), που αγνοούνται κατά την ανάγνωση. */
+  function dataTemplate(programTitle) {
+    return [
+      `# Αρχείο δεδομένων για το πρόγραμμα «${programTitle}»`,
+      '# Κάθε κλήση της input() παίρνει με τη σειρά την επόμενη γραμμή αυτού του αρχείου.',
+      '# Μία γραμμή = μία τιμή (π.χ. 10 ή Άννα Παππά). Το κείμενο γράφεται χωρίς εισαγωγικά.',
+      '# Γραμμή με σκέτο ? : αυτή η τιμή δίνεται από το πληκτρολόγιο.',
+      '# Όταν τελειώσουν οι γραμμές, οι επόμενες τιμές δίνονται από το πληκτρολόγιο.',
+      '# Οι γραμμές που ξεκινούν με # είναι σχόλια και αγνοούνται.',
+      '',
+      '',
+    ].join('\n');
+  }
+
   const App = {
     monaco: null,
     editor: null,
@@ -66,8 +83,22 @@
     async init(monaco) {
       this.monaco = monaco;
       this.settings = await api.settings.get();
+      await root.Themes.applyFonts(document, this.settings);
+      for (const [selId, kind] of [['#set-editor-font', 'mono'], ['#set-ui-font', 'ui']]) {
+        for (const f of root.Themes.FONTS[kind]) $(selId).appendChild(new Option(f.label, f.id));
+      }
+      // Επιλογέας θέματος στις Ρυθμίσεις, από τη λίστα των θεμάτων
+      {
+        const sel = $('#set-theme');
+        for (const g of Object.keys(root.Themes.GROUPS)) {
+          const og = document.createElement('optgroup');
+          og.label = root.Themes.GROUPS[g];
+          for (const t of root.Themes.LIST.filter((x) => x.group === g)) og.appendChild(new Option(t.label, t.id));
+          sel.appendChild(og);
+        }
+      }
       ES().init(monaco);
-      document.body.className = this.settings.theme === 'dark' ? 'theme-dark' : 'theme-light';
+      root.Themes.applyToBody(document.body, this.settings.theme);
 
       this.editor = monaco.editor.create($('#editor-host'), { ...ES().editorOptions(this.settings), model: null });
       this.marks = new (ES().ErrorMarks)(monaco, this.editor);
@@ -102,6 +133,7 @@
         onChange: (s) => this.onWatching(s),
       });
       this.vars = new root.Panels.VariablesView($('#vars'), {
+        parallelButton: $('#vars-par'),
         onGoto: (line) => {
           const tab = this.runTab || this.active;
           if (tab && !tab.model.isDisposed()) { this.activate(tab); this.reveal(line); }
@@ -125,6 +157,8 @@
       this.applySpeed();
       this.bindToolbar();
       this.bindSplitters();
+      this.bindPanelZoom();
+      this.bindUpdate();
       this.bindDrop();
       // Στα Windows, όταν αφήνεται σκέτο το Alt (π.χ. μετά από Alt+κλικ για πολλαπλούς κέρσορες), το Electron
       // δίνει το πληκτρολόγιο στη γραμμή μενού και ο editor «κολλάει»: δεν γράφει, ενώ ο κέρσορας φαίνεται ενεργός.
@@ -253,6 +287,8 @@
         model,
         savedVersion: model.getAlternativeVersionId(),
         viewState: null,
+        // Αρχείο δεδομένων για την input() (επιλέγεται με το κουμπί «Δεδομένα»· η εφαρμογή το θυμάται ανά πρόγραμμα)
+        dataPath: path ? (this.settings.dataFiles || {})[pathKey(path)] || null : null,
       };
       model.onDidChangeContent(() => this.onContentChange(tab));
       this.tabs.push(tab);
@@ -272,6 +308,7 @@
       this.editor.focus();
       this.renderTabs();
       this.updateTitle();
+      this.updateDataUI();
       this.persistSession();
       this.scheduleShare();
     },
@@ -435,6 +472,7 @@
         if (other) this.closeTab(other);
         tab.path = r.path;
         tab.title = baseName(r.path);
+        if (tab.dataPath) this.rememberDataFile(tab);   // το αρχείο δεδομένων ακολουθεί το πρόγραμμα στο νέο του όνομα
       }
       return this.afterSave(tab, r);
     },
@@ -502,6 +540,9 @@
         }
         if (!(await this.save(tab))) return;
       }
+      // Αρχείο δεδομένων (κουμπί «Δεδομένα»): η input() παίρνει πρώτα τις τιμές του
+      const data = await this.dataForRun(tab);
+      if (data === undefined) return;
       this.marks.clear();
       this.clearExecLine();
       const speed = this.settings.runSpeed || 'normal';
@@ -517,7 +558,149 @@
       this.renderTabs();
       this.updateStepButton();
       this.awaitingReady = true;
-      api.backend.run(tab.path, tab.model.getValue(), SPEEDS[speed]);
+      api.backend.run(tab.path, tab.model.getValue(), SPEEDS[speed], data);
+    },
+
+    // ================================================================ αρχείο δεδομένων
+    /**
+     * Κουμπί «Δεδομένα»: ανοίγει την οθόνη «Δεδομένα για την input()» για το πρόγραμμα της τρέχουσας καρτέλας,
+     * με το αρχείο δεδομένων του (αν έχει) και τη γεννήτρια τιμών (αριθμοί, ονόματα, ταυτότητες, πόλεις, χώρες).
+     * Τίποτα δεν γράφεται μέσα στον κώδικα του προγράμματος. Κάθε γραμμή του αρχείου απαντά σε μία κλήση της input().
+     */
+    async openDataScreen() {
+      if (this.lockedByTeacher() || root.DataScreen.isOpen()) return;
+      const prog = this.active;
+      if (!prog) return;
+      let path = prog.dataPath || null;
+      let text = null;
+      let note = '';
+      if (path) {
+        const r = await api.file.read(path);
+        if (r.error) {
+          note =
+            `Δεν βρέθηκε το αρχείο δεδομένων «${baseName(path)}» (ίσως μετακινήθηκε ή άλλαξε όνομα). ` +
+            'Άνοιξε το σωστό αρχείο με «Άνοιγμα αρχείου…» ή δημιούργησε νέες τιμές και αποθήκευσέ τες.';
+          path = null;
+        } else {
+          text = r.content;
+        }
+      }
+      const title = () => (prog.path ? baseName(prog.path) : prog.title);
+      root.DataScreen.open({
+        program: title(),
+        path,
+        text,
+        note,
+        attached: !!prog.dataPath,
+        template: () => dataTemplate(title()),
+        onPick: async (current) => {
+          const startDir = current ? dirName(current) : prog.path ? dirName(prog.path) : undefined;
+          const p = await api.data.choose(startDir);
+          if (!p) return null;
+          const r = await api.file.read(p);
+          if (r.error) {
+            api.dialog.message({ type: 'error', title: 'Άνοιγμα', message: `Δεν ήταν δυνατό να ανοίξει το αρχείο:\n${p}`, detail: r.error });
+            return null;
+          }
+          return { path: p, text: r.content };
+        },
+        onSave: (content, p) => this.saveDataText(prog, content, p),
+        onDetach: () => this.setTabData(prog, null),
+        onClose: () => this.editor.focus(),
+      });
+    },
+
+    /**
+     * Αποθηκεύει τα δεδομένα της οθόνης «Δεδομένα» (ως .txt) και τα συνδέει με το πρόγραμμα.
+     * Νέο αρχείο: προτείνεται το όνομα του προγράμματος με κατάληξη .txt. Επιστρέφει τη διαδρομή ή null.
+     */
+    async saveDataText(prog, content, p) {
+      let r;
+      if (p) {
+        r = await api.file.save(p, content);
+      } else {
+        const suggested = prog.path ? prog.path.replace(/\.[^.\\/]+$/, '') + '.txt' : 'dedomena.txt';
+        r = await api.file.saveAs(content, suggested, 'data');
+        if (!r) return null;
+      }
+      if (!r.ok) {
+        api.dialog.message({ type: 'error', title: 'Αποθήκευση', message: 'Η αποθήκευση του αρχείου δεδομένων απέτυχε.', detail: r.error || '' });
+        return null;
+      }
+      const saved = r.path || p;
+      // Αν το ίδιο αρχείο είναι ανοιχτό και σε καρτέλα, δείχνει κι εκεί το νέο περιεχόμενο
+      const open = this.tabs.find((t) => samePath(t.path, saved));
+      if (open && open.model.getValue() !== content) {
+        open.model.setValue(content);
+        open.savedVersion = open.model.getAlternativeVersionId();
+        this.renderTabs();
+      }
+      this.setTabData(prog, saved);
+      return saved;
+    },
+
+    /** Ορίζει (ή αφαιρεί με null) το αρχείο δεδομένων του προγράμματος και το θυμάται. */
+    setTabData(tab, p) {
+      tab.dataPath = p || null;
+      this.rememberDataFile(tab);
+      this.updateDataUI();
+    },
+
+    /** Μνήμη «πρόγραμμα → αρχείο δεδομένων» στις ρυθμίσεις, ώστε να ισχύει και στο επόμενο άνοιγμα. */
+    rememberDataFile(tab) {
+      if (!tab.path) return;
+      const map = { ...(this.settings.dataFiles || {}) };
+      if (tab.dataPath) map[pathKey(tab.path)] = tab.dataPath;
+      else delete map[pathKey(tab.path)];
+      this.settings.dataFiles = map;
+      api.settings.set({ dataFiles: map });
+    },
+
+    /** Ένδειξη στο κουμπί «Δεδομένα» και στη γραμμή κατάστασης για το πρόγραμμα της τρέχουσας καρτέλας. */
+    updateDataUI() {
+      const prog = this.active;
+      const p = prog && prog.dataPath;
+      const btn = $('#btn-data');
+      if (btn) {
+        btn.classList.toggle('on', !!p);
+        btn.title = p
+          ? `Η input() παίρνει τιμές από το αρχείο «${baseName(p)}». Πάτησε για επεξεργασία, αλλαγή ή απενεργοποίηση.`
+          : 'Δεδομένα: η input() παίρνει τιμές από αρχείο (.txt). Όταν τελειώσουν, οι τιμές δίνονται από το πληκτρολόγιο.';
+      }
+      const st = $('#st-data');
+      if (st) {
+        st.hidden = !p;
+        st.textContent = p ? `📄 ${baseName(p)}` : '';
+        st.title = p ? `Η input() παίρνει τιμές από: ${p}` : '';
+      }
+    },
+
+    /** Απενεργοποίηση: η input() ξαναπαίρνει τιμές από το πληκτρολόγιο. */
+    removeDataFile() {
+      if (this.active) this.setTabData(this.active, null);
+    },
+
+    /** Το αρχείο δεδομένων του προγράμματος για την εκτέλεση: { name, text }, ή null (τιμές από το πληκτρολόγιο). */
+    async dataForRun(tab) {
+      if (!tab.dataPath) return null;
+      // Αν το αρχείο δεδομένων είναι ανοιχτό σε καρτέλα, χρησιμοποιείται ό,τι φαίνεται εκεί (ακόμη και αναποθήκευτο)
+      const open = this.tabs.find((t) => t !== tab && samePath(t.path, tab.dataPath));
+      const r = open ? { content: open.model.getValue() } : await api.file.read(tab.dataPath);
+      if (!r.error) return { name: baseName(tab.dataPath), text: r.content };
+      const { response } = await api.dialog.message({
+        type: 'warning',
+        title: 'Αρχείο δεδομένων',
+        message: `Δεν βρέθηκε το αρχείο δεδομένων «${baseName(tab.dataPath)}».`,
+        detail:
+          `Για αυτό το πρόγραμμα έχει επιλεγεί να παίρνει η input() τιμές από το αρχείο:\n${tab.dataPath}\n\n` +
+          'Ίσως μετακινήθηκε ή άλλαξε όνομα. Μπορείς να διαλέξεις το αρχείο ξανά ή να εκτελέσεις το πρόγραμμα δίνοντας τις τιμές από το πληκτρολόγιο.',
+        buttons: ['Διάλεξε αρχείο…', 'Εκτέλεση με πληκτρολόγιο', 'Ακύρωση'],
+        defaultId: 0,
+        cancelId: 2,
+      });
+      if (response === 1) { this.setTabData(tab, null); return null; }
+      if (response === 0) await this.openDataScreen();
+      return undefined;   // η εκτέλεση ακυρώνεται
     },
 
     // ================================================================ βήμα-βήμα
@@ -635,7 +818,12 @@
           break;
         }
         case 'out':
-          this.shell.write(msg.text, msg.stream === 'stderr' ? 'stderr' : 'out');
+          {
+            // data: τιμή που διαβάστηκε από το αρχείο δεδομένων, info: ενημέρωση για το αρχείο δεδομένων
+            const cls = { stderr: 'stderr', data: 'data-input', info: 'info' }[msg.stream] || 'out';
+            if (cls === 'info') this.shell._ensureNewline();
+            this.shell.write(msg.text, cls);
+          }
           break;
         case 'input_request':
           this.setState('input');
@@ -739,6 +927,14 @@
         replace: 'editor.action.startFindReplaceAction', gotoLine: 'editor.action.gotoLine',
         toggleComment: 'editor.action.commentLine', indent: 'editor.action.indentLines', outdent: 'editor.action.outdentLines',
       };
+      // Οθόνη «Δεδομένα» ανοιχτή: το Ctrl+S αποθηκεύει τα δεδομένα· οι υπόλοιπες εντολές δεν αγγίζουν τον editor από πίσω
+      if (root.DataScreen && root.DataScreen.isOpen()) {
+        if (id === 'save' || id === 'saveAs') root.DataScreen.save();
+        return;
+      }
+      if (id.startsWith('theme:')) { this.updateSettings({ theme: id.slice(6) }); return; }
+      if (id.startsWith('font-mono:')) { this.updateSettings({ editorFont: id.slice(10) }); return; }
+      if (id.startsWith('font-ui:')) { this.updateSettings({ uiFont: id.slice(8) }); return; }
       if (ed[id]) { this.editorAction(ed[id]); return; }
       switch (id) {
         case 'new': this.newFile(); break;
@@ -748,6 +944,9 @@
         case 'saveAs': this.saveAs(); break;
         case 'closeTab': if (this.active) this.closeTab(this.active); break;
         case 'run': this.run(); break;
+        case 'checkUpdate': this.checkUpdateManually(); break;
+        case 'dataChoose': this.openDataScreen(); break;
+        case 'dataRemove': this.removeDataFile(); break;
         case 'stop': this.stop(); break;
         case 'step': this.step(); break;
         case 'speed:step': case 'speed:slow': case 'speed:medium': case 'speed:normal': this.setSpeed(id.split(':')[1]); break;
@@ -756,7 +955,7 @@
         case 'zoomIn': this.setFont(this.settings.fontSize + 1); break;
         case 'zoomOut': this.setFont(this.settings.fontSize - 1); break;
         case 'zoomReset': this.setFont(16); break;
-        case 'toggleTheme': this.updateSettings({ theme: this.settings.theme === 'dark' ? 'light' : 'dark' }); break;
+        case 'toggleTheme': this.updateSettings({ theme: root.Themes.get(this.settings.theme).pair }); break;
         case 'toggleMinimap': this.updateSettings({ minimap: !this.settings.minimap }); break;
         case 'toggleWrap': this.updateSettings({ wordWrap: !this.settings.wordWrap }); break;
         case 'toggleWhitespace': this.updateSettings({ showWhitespace: !this.settings.showWhitespace }); break;
@@ -825,7 +1024,7 @@
       ed.focus();
     },
 
-    async requestClose() {
+    async requestClose(thenInstall = false) {
       const dirty = this.tabs.filter((t) => this.isDirty(t) && (t.path || t.model.getValue().trim()));
       if (dirty.length) {
         const r = await api.dialog.unsaved(dirty.map((t) => t.title));
@@ -842,7 +1041,8 @@
         openFiles: this.tabs.filter((t) => t.path).map((t) => t.path),
         activeFile: this.active && this.active.path,
       });
-      api.closeNow();
+      if (thenInstall) api.update.install();
+      else api.closeNow();
     },
 
     // ================================================================ τάξη
@@ -1078,16 +1278,180 @@
       this.activate(tab);
     },
 
+    // ================================================================ ενημερώσεις
+    /**
+     * Μήνυμα «Υπάρχει νέα έκδοση» κάτω από τα κουμπιά. Στα Windows με εγκατεστημένη εφαρμογή η ενημέρωση κατεβαίνει και
+     * εγκαθίσταται με ένα κλικ· αλλιώς (φορητή έκδοση, Linux) το κουμπί ανοίγει τη σελίδα λήψης.
+     */
+    bindUpdate() {
+      this.update = { state: 'idle' };
+      api.update.onState((s) => this.onUpdate(s));
+      $('#up-later').addEventListener('click', () => { $('#update-bar').hidden = true; });
+      $('#up-go').addEventListener('click', () => this.updateAction());
+      $('#up-notes').addEventListener('click', () => {
+        api.dialog.message({
+          type: 'info',
+          title: 'Νέα έκδοση',
+          message: `Έκδοση ${this.update.version}`,
+          detail: this.update.notes || 'Δεν υπάρχουν σημειώσεις για αυτή την έκδοση.',
+          buttons: ['Εντάξει'],
+        });
+      });
+    },
+
+    onUpdate(s) {
+      this.update = s;
+      // «Δεν υπάρχει νέα έκδοση» και σφάλμα ελέγχου εμφανίζονται μόνο όταν ο χρήστης ζήτησε τον έλεγχο (checkUpdateManually)
+      if (s.state === 'none' || (s.state === 'error' && s.phase === 'check')) return;
+      const bar = $('#update-bar');
+      const prog = $('#up-prog');
+      const go = $('#up-go');
+      const cur = s.current ? ` (έχεις την ${s.current})` : '';
+      prog.hidden = s.state !== 'downloading';
+      $('#up-notes').hidden = s.state !== 'available' || !s.notes;
+      go.hidden = false;
+      go.disabled = false;
+      $('#up-later').hidden = s.state === 'downloading';
+      if (s.state === 'available') {
+        $('#up-msg').textContent = `🔔 Υπάρχει νέα έκδοση ${s.version}${cur}.`;
+        go.textContent = s.canInstall ? 'Ενημέρωση τώρα' : 'Λήψη της νέας έκδοσης…';
+        go.title = s.canInstall
+          ? 'Κατεβαίνει και εγκαθίσταται η νέα έκδοση, και η εφαρμογή ξεκινά ξανά'
+          : 'Ανοίγει η σελίδα λήψης (η φορητή έκδοση και το Linux δεν ενημερώνονται αυτόματα)';
+      } else if (s.state === 'downloading') {
+        $('#up-msg').textContent = `⬇ Λήψη της έκδοσης ${s.version}… ${s.percent || 0}%`;
+        $('#up-prog-bar').style.width = `${s.percent || 0}%`;
+        go.hidden = true;
+      } else if (s.state === 'ready') {
+        $('#up-msg').textContent = `✅ Η έκδοση ${s.version} είναι έτοιμη για εγκατάσταση.`;
+        go.textContent = 'Επανεκκίνηση και εγκατάσταση';
+        go.title = 'Η εφαρμογή κλείνει (θα ρωτήσει για μη αποθηκευμένα αρχεία), εγκαθίσταται η νέα έκδοση και ξεκινά ξανά';
+      } else if (s.state === 'error') {
+        $('#up-msg').textContent = `⚠ Η ενημέρωση δεν ολοκληρώθηκε (${s.error}).`;
+        go.textContent = 'Άνοιγμα σελίδας λήψης';
+        go.title = 'Κατέβασε και εγκατάστησε τη νέα έκδοση από το GitHub';
+      } else {
+        return;
+      }
+      bar.hidden = false;
+    },
+
+    async updateAction() {
+      const s = this.update;
+      if (s.state === 'available') {
+        await api.update.download();
+      } else if (s.state === 'ready') {
+        this.requestClose(true);
+      } else if (s.state === 'error' && s.url) {
+        window.open(s.url);
+      }
+    },
+
+    /** Μενού Βοήθεια → Έλεγχος για ενημέρωση. */
+    async checkUpdateManually() {
+      const s = await api.update.check(true);
+      if (s.state === 'none') {
+        await api.dialog.message({
+          type: 'info', title: 'Ενημέρωση', message: 'Έχεις την τελευταία έκδοση.',
+          detail: `Η τρέχουσα έκδοση είναι η ${s.current}.`, buttons: ['Εντάξει'],
+        });
+      } else if (s.state === 'error' && s.phase === 'check') {
+        await api.dialog.message({
+          type: 'warning', title: 'Ενημέρωση', message: 'Δεν ήταν δυνατός ο έλεγχος για νέα έκδοση.',
+          detail: `Ελέγξτε τη σύνδεση στο internet και δοκιμάστε ξανά.\n(${s.error})`, buttons: ['Εντάξει'],
+        });
+      } else if (s.state === 'available') {
+        this.onUpdate(s);
+      }
+    },
+
+    // ================================================================ μέγεθος των πλαϊνών καρτελών
+    /**
+     * Σε κάθε πλαϊνή καρτέλα (Μεταβλητές, Βοηθός, Θέλω να θυμηθώ): A− / A+ (ή Ctrl + ροδάκι) για το μέγεθος
+     * των γραμμάτων της, και ⛶ για να πιάσει όλο το παράθυρο, π.χ. για προβολή στον πίνακα της τάξης.
+     */
+    bindPanelZoom() {
+      const PANELS = { vars: '#vars-panel', assist: '#assist-panel', recall: '#recall-panel' };
+      const zooms = { ...(this.settings.panelZoom || {}) };
+      let saveTimer = null;
+      const apply = (key) => {
+        const sec = $(PANELS[key]);
+        const z = zooms[key] || 1;
+        sec.querySelector('.panel-body').style.zoom = z;
+        sec.querySelector('.pz-val').textContent = `${Math.round(z * 100)}%`;
+      };
+      const set = (key, z) => {
+        zooms[key] = Math.round(Math.max(0.7, Math.min(3, z)) * 10) / 10;
+        apply(key);
+        this.settings.panelZoom = zooms;
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => api.settings.set({ panelZoom: zooms }), 400);
+      };
+      for (const [key, sel] of Object.entries(PANELS)) {
+        const sec = $(sel);
+        const head = sec.querySelector('.panel-head');
+        const box = document.createElement('span');
+        box.className = 'pz';
+        box.innerHTML =
+          '<button class="mini" data-z="-1" title="Μικρότερα γράμματα σε αυτή την καρτέλα (ή Ctrl + ροδάκι)">A−</button>' +
+          '<button class="mini pz-val" data-z="0" title="Επιστροφή στο αρχικό μέγεθος (100%)"></button>' +
+          '<button class="mini" data-z="1" title="Μεγαλύτερα γράμματα σε αυτή την καρτέλα (ή Ctrl + ροδάκι)">A+</button>' +
+          '<button class="mini pz-max" title="Μεγιστοποίηση: η καρτέλα πιάνει όλο το παράθυρο, π.χ. για προβολή στον πίνακα. Ξαναπάτα ή Esc για επιστροφή.">' +
+          '<svg viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+        head.insertBefore(box, head.querySelector('.close'));
+        box.addEventListener('click', (e) => {
+          const b = e.target.closest('button');
+          if (!b) return;
+          if (b.classList.contains('pz-max')) { this.togglePanelMax(sec); return; }
+          const d = Number(b.dataset.z);
+          set(key, d === 0 ? 1 : (zooms[key] || 1) + d * 0.1);
+        });
+        sec.querySelector('.panel-body').addEventListener('wheel', (e) => {
+          if (!e.ctrlKey) return;
+          e.preventDefault();
+          set(key, (zooms[key] || 1) + (e.deltaY < 0 ? 0.1 : -0.1));
+        }, { passive: false });
+        apply(key);
+      }
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.body.classList.contains('side-max') && !document.querySelector('dialog[open]')) {
+          this.togglePanelMax(null);
+        }
+      });
+    },
+
+    /** Μεγιστοποίηση μιας πλαϊνής καρτέλας (ή επιστροφή, με null ή με την ίδια καρτέλα). */
+    togglePanelMax(sec) {
+      const cur = document.querySelector('#side .side-panel.maximized');
+      if (cur) cur.classList.remove('maximized');
+      const on = !!sec && sec !== cur;
+      if (on) sec.classList.add('maximized');
+      document.body.classList.toggle('side-max', on);
+      document.querySelectorAll('.pz-max').forEach((b) => b.classList.toggle('on', on && sec.contains(b)));
+      requestAnimationFrame(() => this.editor.layout());
+    },
+
     // ================================================================ ρυθμίσεις
     async updateSettings(patch) {
       Object.assign(this.settings, patch);
+      // Αν κρύβεται μια καρτέλα ενώ κάποια είναι μεγιστοποιημένη, επιστρέφει η κανονική διάταξη
+      if (('showVariables' in patch || 'showAssistant' in patch || 'showRecall' in patch) && document.body.classList.contains('side-max')) {
+        this.togglePanelMax(null);
+      }
       await api.settings.set(patch);
       if ('theme' in patch) {
-        document.body.className = this.settings.theme === 'dark' ? 'theme-dark' : 'theme-light';
+        root.Themes.applyToBody(document.body, this.settings.theme);
         this.applyPanels();
       }
+      const fontsChanged = 'editorFont' in patch || 'uiFont' in patch;
+      if (fontsChanged) await root.Themes.applyFonts(document, this.settings);   // φορτώνει τη γραμματοσειρά πριν τη χρησιμοποιήσει ο editor
       this.editor.updateOptions(ES().editorOptions(this.settings));
-      this.monaco.editor.setTheme(this.settings.theme === 'dark' ? 'idle-dark' : 'idle-light');
+      if (fontsChanged) {
+        const family = ES().editorOptions(this.settings).fontFamily;
+        if (this.presentView && this.presentView.editor) this.presentView.editor.updateOptions({ fontFamily: family });
+        this.monaco.editor.remeasureFonts();
+      }
+      this.monaco.editor.setTheme(root.Themes.get(this.settings.theme).monaco);
       if ('showVariables' in patch || 'showAssistant' in patch || 'showRecall' in patch) this.applyPanels();
       if ('fontSize' in patch) this.applyFont();
       if ('runSpeed' in patch) this.applySpeed();
@@ -1133,10 +1497,13 @@
       const s = await api.settings.get();
       $('#set-python').value = s.pythonPath || '';
       $('#set-font').value = s.fontSize;
-      $('#set-theme').value = s.theme;
+      $('#set-theme').value = root.Themes.get(s.theme).id;
+      $('#set-editor-font').value = s.editorFont || 'default';
+      $('#set-ui-font').value = s.uiFont || 'default';
       if ($('#set-greek-names')) $('#set-greek-names').value = s.greekNames || 'warn';
       $('#set-save').checked = !!s.saveBeforeRun;
       $('#set-live').checked = !!s.liveCheck;
+      $('#set-update').checked = s.autoUpdateCheck !== false;
       const status = $('#set-python-status');
       status.textContent = '';
       status.className = '';
@@ -1172,9 +1539,12 @@
           pythonPath: $('#set-python').value.trim(),
           fontSize: Math.max(10, Math.min(32, Number($('#set-font').value) || 16)),
           theme: $('#set-theme').value,
+          editorFont: $('#set-editor-font').value,
+          uiFont: $('#set-ui-font').value,
           greekNames: $('#set-greek-names') ? $('#set-greek-names').value : (this.settings.greekNames || 'warn'),
           saveBeforeRun: $('#set-save').checked,
           liveCheck: $('#set-live').checked,
+          autoUpdateCheck: $('#set-update').checked,
         };
         const pyChanged = patch.pythonPath !== this.settings.pythonPath;
         await this.updateSettings(patch);

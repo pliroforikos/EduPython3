@@ -82,10 +82,11 @@ class RunnerTest(unittest.TestCase):
         self.s.close()
         shutil.rmtree(self.tmp, ignore_errors=True)
 
-    def run_code(self, source, inputs=(), name='prog.py'):
+    def run_code(self, source, inputs=(), name='prog.py', data=None):
         path = os.path.join(self.tmp, name)
         self.path = path
-        self.s.send(cmd='run', path=path, source=source, encoding='utf-8')
+        extra = {'data': data} if data is not None else {}
+        self.s.send(cmd='run', path=path, source=source, encoding='utf-8', **extra)
         return self.s.until_prompt(inputs)
 
     def test_greek_print_and_len(self):
@@ -122,6 +123,49 @@ class RunnerTest(unittest.TestCase):
         self.assertEqual(self.s.errors(), [])
         g = self.s.last_globals()
         self.assertEqual(g['αποτέλεσμα']['repr'], '20')
+
+    def test_data_file_feeds_input(self):
+        # αρχείο δεδομένων: σχόλια και κενές γραμμές αγνοούνται, οι τιμές δίνονται με τη σειρά
+        data = {'name': 'τιμές.txt', 'text': '# σχόλιο\nΆννα Παππά\n\n10\n20\n'}
+        self.run_code("x = input('Όνομα: ')\na = int(input())\nb = int(input())\nprint(x, a + b)\n", data=data)
+        self.assertEqual(self.s.output(), 'Όνομα: Άννα Παππά 30\n')
+        self.assertEqual(self.s.output('data'), 'Άννα Παππά\n10\n20\n')
+        info = self.s.output('info')
+        self.assertIn('τιμές.txt', info)
+        self.assertIn('3 γραμμές', info)
+        self.assertEqual([m for m in self.s.messages if m['type'] == 'input_request'], [])
+
+    def test_data_file_question_mark_and_end(self):
+        # «?» ζητά την τιμή από το πληκτρολόγιο· όταν τελειώσει το αρχείο, συνεχίζει το πληκτρολόγιο
+        data = {'name': 'd.txt', 'text': '5\n?\n7\n'}
+        self.run_code("a = input()\nb = input()\nc = input()\nd = input()\nprint(a, b, c, d)\n",
+                      inputs=['6', '8'], data=data)
+        self.assertEqual(self.s.output(), '5 6 7 8\n')
+        req = [m for m in self.s.messages if m['type'] == 'input_request']
+        self.assertEqual(len(req), 2)
+        self.assertIn('2 γραμμές', self.s.output('info'))
+
+    def test_data_file_works_with_sys_stdin(self):
+        data = {'name': 'd.txt', 'text': 'α\nβ\n'}
+        self.run_code("import sys\nx = sys.stdin.readline()\nprint(repr(x), input())\n", data=data)
+        self.assertEqual(self.s.output(), "'α\\n' β\n")
+
+    def test_list_view_for_variables_panel(self):
+        self.run_code("names = ['Α', 'Β']\ngrid = [[1, 2, 3], [4, 5, 6]]\nd = {'k': 1}\nt = (7, 8)\nn = 3\n")
+        g = self.s.last_globals()
+        self.assertEqual(g['names']['seq']['items'], ["'Α'", "'Β'"])
+        self.assertEqual(g['grid']['seq']['grid'], [['1', '2', '3'], ['4', '5', '6']])
+        self.assertEqual(g['grid']['seq']['cols'], 3)
+        self.assertEqual(g['d']['seq']['pairs'], [["'k'", '1']])
+        self.assertEqual(g['t']['seq']['items'], ['7', '8'])
+        self.assertNotIn('seq', g['n'])
+
+    def test_long_list_view_is_capped(self):
+        self.run_code("big = list(range(1000))\n")
+        seq = self.s.last_globals()['big']['seq']
+        self.assertEqual(len(seq['items']), 200)
+        self.assertTrue(seq['more'])
+        self.assertEqual(self.s.last_globals()['big']['len'], 1000)
 
     def _globals_before(self, nth_input):
         """Οι τελευταίες μεταβλητές που στάλθηκαν πριν από το nth_input-οστό input_request (από 1)."""

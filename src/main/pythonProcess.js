@@ -264,8 +264,8 @@ class Backend extends EventEmitter {
   }
 
   /** trace: null για κανονική εκτέλεση, ή { mode: 'step' | 'auto', delay } για βήμα-βήμα. */
-  run({ path: filePath, source, encoding, trace }) {
-    this._spawn({ cmd: 'run', path: filePath, source, encoding, trace: trace || null, cwd: filePath ? path.dirname(filePath) : undefined });
+  run({ path: filePath, source, encoding, trace, data }) {
+    this._spawn({ cmd: 'run', path: filePath, source, encoding, trace: trace || null, data: data || null, cwd: filePath ? path.dirname(filePath) : undefined });
   }
 
   shell({ cwd, encoding }) {

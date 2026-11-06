@@ -81,6 +81,163 @@ body.theme-dark {
   --scroll-thumb: #4a4d52;
 }
 
+/* ------------------------------------------------------------------ θέματα τύπου Android Studio
+   Dark, Darcula, Islands Darcula και τα φωτεινά τους (Light, IntelliJ Light, Islands Light).
+   Τα προεπιλεγμένα θέματα (theme-light, theme-dark) είναι πιο πάνω. Δες και themes.js. */
+
+/* Dark: το σκούρο «νέο UI» του IntelliJ */
+body.theme-jb-dark {
+  --fg: #dfe1e5;
+  --muted: #868a91;
+  --border: #393b40;
+  --toolbar-bg: #2b2d30;
+  --panel-head: #2b2d30;
+  --tabs-bg: #2b2d30;
+  --tab-hover: #393b40;
+  --accent: #548af7;
+  --input: #6fa8ff;
+  --command: #c77dbb;
+  --sel-row: #2e436e;
+  --scroll-thumb: #4e5157;
+}
+
+/* Darcula: το κλασικό γκρι θέμα */
+body.theme-jb-darcula {
+  --bg: #2b2b2b;
+  --fg: #bbbbbb;
+  --muted: #8a8d90;
+  --border: #323232;
+  --toolbar-bg: #3c3f41;
+  --panel-head: #3c3f41;
+  --tabs-bg: #3c3f41;
+  --tab-active: #2b2b2b;
+  --tab-hover: #4b5052;
+  --accent: #4a88c7;
+  --shell-bg: #2b2b2b;
+  --prompt: #808080;
+  --command: #9876aa;
+  --input: #6897bb;
+  --repl-input: #a9b7c6;
+  --err: #ff6b68;
+  --info: #808080;
+  --hint-bg: #3d3b29;
+  --hint-border: #6d6330;
+  --hint-fg: #e6d589;
+  --sel-row: #2f446b;
+  --changed: #4a4720;
+  --code-bg: #313335;
+  --ok-bg: #26392b;
+  --bad-bg: #402628;
+  --good-bg: #26392b;
+  --scroll-thumb: #595b5d;
+  --exec-mark: #e8bf6a;
+}
+
+/* Islands Darcula: σκούρες «νησίδες» πάνω σε πιο σκούρο πλαίσιο */
+body.theme-jb-islands-darcula {
+  --frame: #17181b;
+  --bg: #1e1f22;
+  --fg: #dfe1e5;
+  --muted: #868a91;
+  --border: #2f3134;
+  --toolbar-bg: #17181b;
+  --panel-head: #25272b;
+  --tabs-bg: #25272b;
+  --tab-active: #1e1f22;
+  --tab-hover: #2f3136;
+  --accent: #548af7;
+  --input: #6fa8ff;
+  --command: #c77dbb;
+  --sel-row: #2e436e;
+  --code-bg: #2b2d30;
+  --scroll-thumb: #4e5157;
+}
+
+/* Light: το φωτεινό «νέο UI» του IntelliJ */
+body.theme-jb-light {
+  --bg: #ffffff;
+  --fg: #1b1c1f;
+  --muted: #6c707e;
+  --border: #ebecf0;
+  --toolbar-bg: #f7f8fa;
+  --panel-head: #f7f8fa;
+  --tabs-bg: #f7f8fa;
+  --tab-active: #ffffff;
+  --tab-hover: #ebecf0;
+  --accent: #3574f0;
+  --shell-bg: #ffffff;
+  --prompt: #8c8c8c;
+  --command: #871094;
+  --input: #1750eb;
+  --repl-input: #080808;
+  --info: #6c707e;
+  --sel-row: #dfe9fd;
+  --code-bg: #f2f3f5;
+  --scroll-thumb: #c9ccd6;
+}
+
+/* IntelliJ Light: το κλασικό φωτεινό θέμα */
+body.theme-jb-intellij-light {
+  --bg: #ffffff;
+  --fg: #000000;
+  --muted: #6e6e6e;
+  --border: #d1d1d1;
+  --toolbar-bg: #f2f2f2;
+  --panel-head: #f2f2f2;
+  --tabs-bg: #ececec;
+  --tab-active: #ffffff;
+  --tab-hover: #dedede;
+  --accent: #2675bf;
+  --shell-bg: #ffffff;
+  --prompt: #8c8c8c;
+  --command: #871094;
+  --input: #1750eb;
+  --repl-input: #000000;
+  --sel-row: #d5e6fa;
+  --code-bg: #f0f0f0;
+  --scroll-thumb: #c4c4c4;
+}
+
+/* Islands Light: λευκές «νησίδες» πάνω σε γκρι πλαίσιο */
+body.theme-jb-islands-light {
+  --frame: #e3e5ea;
+  --bg: #ffffff;
+  --fg: #1b1c1f;
+  --muted: #6c707e;
+  --border: #ebecf0;
+  --toolbar-bg: #e3e5ea;
+  --panel-head: #f7f8fa;
+  --tabs-bg: #f7f8fa;
+  --tab-active: #ffffff;
+  --tab-hover: #ebecf0;
+  --accent: #3574f0;
+  --shell-bg: #ffffff;
+  --prompt: #8c8c8c;
+  --command: #871094;
+  --input: #1750eb;
+  --repl-input: #080808;
+  --sel-row: #dfe9fd;
+  --code-bg: #f2f3f5;
+  --scroll-thumb: #bfc3cc;
+}
+
+/* Νησίδες: ο editor, το Shell και κάθε πλαϊνή καρτέλα είναι στρογγυλεμένα πάνελ πάνω στο πλαίσιο */
+body.theme-islands { background: var(--frame); }
+body.theme-islands #toolbar { background: var(--frame); border-bottom: none; }
+body.theme-islands #main { padding: 0 6px 6px; background: var(--frame); }
+body.theme-islands #tabs { border-radius: 10px 10px 0 0; }
+body.theme-islands #editor-host { border-radius: 0 0 10px 10px; background: var(--bg); }
+body.theme-islands #shell-panel,
+body.theme-islands #present-panel { border-radius: 10px; overflow: hidden; background: var(--bg); }
+body.theme-islands #side { border-left: none; }
+body.theme-islands #side .side-panel { border-radius: 10px; overflow: hidden; background: var(--bg); }
+body.theme-islands .splitter { background: transparent; }
+body.theme-islands .splitter.h { height: 6px; }
+body.theme-islands .splitter.v { width: 6px; }
+body.theme-islands .splitter:hover, body.theme-islands .splitter.dragging { background: var(--accent); opacity: 0.55; }
+body.theme-islands #statusbar { background: var(--frame); border-top: none; }
+body.theme-islands #toolbar .sep { background: var(--muted); opacity: 0.35; }
+
 /* ------------------------------------------------------------------ βασικά */
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
@@ -235,6 +392,19 @@ body.dragging-h *, body.dragging-v * { pointer-events: none; }
   font-size: 12.5px;
 }
 .panel-title { font-weight: 600; letter-spacing: 0.2px; }
+#side .panel-head .panel-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#side .panel-head > button, #side .panel-head .pz { flex: none; }
+/* μέγεθος γραμμάτων και μεγιστοποίηση των πλαϊνών καρτελών */
+.panel-head .pz { display: inline-flex; align-items: center; gap: 2px; }
+.panel-head .pz button.mini { padding: 1px 6px; line-height: 16px; }
+.panel-head .pz .pz-val { min-width: 40px; color: var(--muted); }
+.panel-head .pz .pz-max { display: inline-flex; align-items: center; padding: 1px 4px; }
+.panel-head .pz .pz-max svg { width: 15px; height: 15px; }
+.panel-head .pz .pz-max.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+body.side-max #center, body.side-max #split-side { display: none; }
+body.side-max #side { flex: 1 1 auto; width: auto !important; border-left: none; }
+body.side-max #side > .side-panel:not(.maximized), body.side-max #side > .splitter { display: none !important; }
+body.side-max #side > .side-panel.maximized { display: flex !important; flex: 1 1 auto !important; height: auto !important; }
 .panel-sub { color: var(--muted); font-size: 12px; }
 .panel-body { flex: 1; overflow: auto; min-height: 0; user-select: text; }
 button.mini {
@@ -326,6 +496,8 @@ button.mini.close:hover { color: var(--fg); }
 :is(#shell, #pr-shell) .user-input { color: var(--input); font-weight: 600; }
 :is(#shell, #pr-shell) .repl-input { color: var(--repl-input); }
 :is(#shell, #pr-shell) .info { color: var(--info); font-style: italic; }
+/* Τιμή που διαβάστηκε από το αρχείο δεδομένων: όπως η πληκτρολόγηση, αλλά με πλάγια γράμματα */
+:is(#shell, #pr-shell) .data-input { color: var(--input); font-style: italic; }
 #shell .tb-link { color: var(--accent); text-decoration: underline; cursor: pointer; }
 #shell .tb-link:hover { text-decoration-thickness: 2px; }
 :is(#shell, #pr-shell) .hint {
@@ -411,6 +583,43 @@ table.vars tr.fn .vval { color: var(--accent); }
 .vdetail-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; color: var(--muted); }
 .vdetail-head b { color: var(--fg); font-family: var(--font-mono); }
 .vdetail pre { margin: 6px 0 0; white-space: pre-wrap; word-break: break-word; font-family: var(--font-mono); max-height: 220px; overflow: auto; }
+/* πίνακες στη λεπτομέρεια */
+.arr-table, .matrix-table { border-collapse: collapse; margin-top: 6px; font-family: var(--font-mono); font-size: 12.5px; }
+.arr-table th, .arr-table td, .matrix-table th, .matrix-table td { border: 1px solid var(--border); padding: 2px 8px; text-align: center; }
+.arr-table th, .matrix-table th, .arr-idx { color: var(--muted); font-weight: 600; background: var(--panel-head); }
+
+/* παράλληλοι πίνακες (κουμπί «Παράλληλοι») */
+.vars-tools { flex: none; padding: 3px 8px; border-bottom: 1px solid var(--border); }
+#vars-panel button.par-toggle { white-space: nowrap; }
+#vars-panel button.par-toggle.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.par-box { margin: 8px; display: flex; flex-direction: column; gap: 10px; font-size: 12.5px; }
+.par-box code { font-family: var(--font-mono); background: var(--code-bg); padding: 0 3px; border-radius: 3px; }
+.par-none { color: var(--muted); line-height: 1.5; padding: 8px 10px; border: 1px dashed var(--border); border-radius: 8px; }
+.par-hint { color: var(--muted); line-height: 1.45; }
+.par-hint b { color: var(--fg); }
+.par-title { margin-bottom: 4px; color: var(--muted); }
+.par-title b { color: var(--fg); font-family: var(--font-mono); font-weight: 600; }
+.par-scroll { overflow: auto; max-height: 340px; border: 1px solid var(--border); border-radius: 6px; }
+.par-table { border-collapse: collapse; font-family: var(--font-mono); font-size: 12.5px; min-width: 100%; }
+.par-table th, .par-table td { border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); padding: 2px 8px; text-align: center; white-space: nowrap; }
+.par-table thead { position: sticky; top: 0; z-index: 2; }
+.par-table thead th { background: var(--panel-head); color: var(--fg); font-weight: 600; }
+.par-table thead tr.par-sub th { color: var(--muted); font-weight: 400; }
+.par-table thead tr.par-colhead th { color: var(--accent); font-weight: 600; }
+.par-table .par-idx { position: sticky; left: 0; z-index: 1; background: var(--panel-head); color: var(--muted); text-align: left; font-weight: 600; }
+.par-table .par-2d { border-left: 2px solid var(--accent); }
+.par-table td.unset { color: var(--muted); }
+.par-table td.chg { animation: changed 1.8s ease-out; font-weight: 700; }
+.par-table tr.ptr td { background: var(--sel-row); }
+.par-table tr.ptr .par-idx { color: var(--fg); }
+.par-ptr { color: var(--exec-mark); font-weight: 700; }
+
+.arr-h th { text-align: left; color: var(--muted); font-weight: 600; background: var(--panel-head); padding: 2px 8px; border: 1px solid var(--border); }
+.arr-table td.arr-val { text-align: left; }
+.matrix-table td.unset { background: var(--panel-head); }
+.vdetail .par-scroll { max-height: 300px; margin-top: 6px; }
+.vdetail .vlen { margin-top: 4px; }
+table.vars tr.is-seq .vval { font-family: var(--font-mono); }
 
 /* ------------------------------------------------------------------ βοηθός */
 .assist { padding: 12px 14px 20px; font-size: 13.5px; line-height: 1.55; }
@@ -528,6 +737,8 @@ table.vars tr.fn .vval { color: var(--accent); }
   color: var(--muted);
 }
 #statusbar .st-file { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 50vw; }
+/* Αρχείο δεδομένων της καρτέλας: οι ΔΙΑΒΑΣΕ παίρνουν τιμές από αυτό */
+#statusbar .st-data { color: var(--accent); font-weight: 600; white-space: nowrap; margin-left: 12px; }
 .st-state { font-weight: 600; }
 .st-state.idle { color: var(--muted); }
 .st-state.running { color: var(--run); }
@@ -572,6 +783,63 @@ dialog button.primary { background: var(--accent); border-color: var(--accent); 
 .buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .ok-text { color: var(--run); }
 .bad-text { color: var(--err); }
+/* ------------------------------------------------------------------ οθόνη «Δεδομένα για τις ΔΙΑΒΑΣΕ» */
+#dlg-data { width: min(1120px, 96vw); height: min(760px, 92vh); max-height: 92vh; }
+#dlg-data[open] { display: flex; }
+#dlg-data .dd-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 16px 20px; gap: 10px; }
+#dlg-data .dd-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+#dlg-data .dd-head h2 { margin: 0; }
+#dlg-data .dd-prog { color: var(--muted); font-size: 14px; }
+#dlg-data .dd-file { font-size: 13px; color: var(--muted); max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#dlg-data .spacer { flex: 1; }
+#dlg-data .dd-body { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 16px; flex: 1; min-height: 0; }
+#dlg-data .dd-left { display: flex; flex-direction: column; min-height: 0; gap: 6px; }
+#dlg-data .dd-label { font-size: 13px; color: var(--muted); }
+#dlg-data .dd-label b { color: var(--fg); font-weight: 600; }
+#dd-text {
+  flex: 1; min-height: 0; resize: none; font-family: var(--font-mono); font-size: 14.5px; line-height: 1.5;
+  color: var(--fg); background: var(--shell-bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+  tab-size: 4;
+}
+#dd-text:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+#dlg-data .dd-stat { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+#dlg-data .dd-gen { display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: auto; padding: 2px 4px 2px 0; }
+#dlg-data .dd-gen h3 { margin: 0; }
+#dlg-data .dd-gen .field { margin-bottom: 0; }
+#dlg-data .dd-kinds { display: flex; flex-wrap: wrap; gap: 6px; }
+#dlg-data .dd-kinds button, #dlg-data .dd-seg button { padding: 5px 11px; border-radius: 999px; color: var(--fg); }
+#dlg-data .dd-kinds button.on, #dlg-data .dd-seg button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+#dlg-data .dd-seg { display: flex; gap: 4px; }
+#dlg-data .dd-seg button { padding: 5px 9px; font-weight: 400; }
+#dlg-data .dd-row { display: flex; gap: 10px; align-items: flex-end; }
+#dlg-data .dd-row[hidden] { display: none; }
+#dlg-data .dd-row .field { flex: 1; min-width: 0; }
+#dlg-data .dd-row input, #dlg-data .dd-row select { width: 100%; box-sizing: border-box; }
+#dlg-data .dd-row .field.dd-count-field { flex: 0 0 96px; }
+#dlg-data .dd-seg button { white-space: nowrap; }
+#dlg-data .dd-gen { overflow-x: hidden; }
+#dlg-data .check { margin: 0; }
+#dlg-data .check[hidden], #dlg-data [hidden] { display: none; }
+#dlg-data .dd-prev-head { display: flex; align-items: center; font-size: 13px; font-weight: 600; }
+#dlg-data .dd-prev-head button { padding: 3px 10px; font-weight: 400; }
+#dlg-data .dd-preview {
+  display: flex; flex-wrap: wrap; gap: 4px; align-content: flex-start;
+  min-height: 64px; max-height: 170px; overflow: auto; padding: 6px;
+  border: 1px dashed var(--border); border-radius: 8px; background: var(--code-bg); font-size: 13px;
+}
+#dlg-data .dd-preview span { padding: 1px 7px; border-radius: 5px; background: var(--bg); border: 1px solid var(--border); white-space: nowrap; }
+#dlg-data .dd-note { font-size: 12.5px; line-height: 1.45; padding: 6px 9px; border-radius: 6px; }
+#dlg-data .dd-note.ok { background: var(--ok-bg); color: var(--fg); }
+#dlg-data .dd-note.bad { background: var(--bad-bg); color: var(--err); }
+#dlg-data .dd-note.warn, #dlg-data .dd-note.info { background: var(--hint-bg); color: var(--hint-fg); border: 1px solid var(--hint-border); }
+#dlg-data .dd-add { display: flex; gap: 8px; flex-wrap: wrap; }
+#dlg-data button:disabled { opacity: 0.5; cursor: default; }
+#dlg-data .dd-tip { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+#dlg-data .dd-tip code { font-family: var(--font-mono); background: var(--code-bg); padding: 0 3px; border-radius: 3px; color: var(--fg); }
+#dlg-data button { color: var(--fg); }
+#dlg-data button.primary { color: #fff; }
+#dlg-data .dd-foot { margin-top: 0; justify-content: flex-start; align-items: center; }
+
 /* ------------------------------------------------------------------ τάξη */
 #toolbar button.hand { display: none; }
 body.classroom-on #toolbar button.hand { display: inline-flex; }
@@ -618,3 +886,13 @@ body.present-locked #toolbar [data-cmd="run"], body.present-locked #toolbar [dat
 
 table.keys { border-collapse: collapse; width: 100%; font-size: 13px; }
 table.keys td { padding: 4px 6px; border-bottom: 1px solid var(--border); }
+
+/* ------------------------------------------------------------------ ειδοποίηση ενημέρωσης */
+.update-bar { flex: none; display: flex; min-height: 34px; box-sizing: border-box; align-items: center; gap: 8px; padding: 5px 12px; font-size: 13px; background: var(--hint-bg); color: var(--hint-fg); border-bottom: 1px solid var(--hint-border); }
+.update-bar[hidden] { display: none; }
+.update-bar .up-msg { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.update-bar .up-prog { width: 160px; height: 8px; border-radius: 4px; background: var(--border); overflow: hidden; flex: none; }
+.update-bar .up-prog i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.3s; }
+.update-bar button.mini { flex: none; white-space: nowrap; color: var(--fg); }
+.update-bar button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.update-bar button[hidden] { display: none; }

@@ -5,6 +5,7 @@
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; worker-src 'self' blob: data:">
   <title>EduPython3</title>
+  <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="theme-light">
@@ -15,6 +16,7 @@
     <div class="sep"></div>
     <button data-cmd="run" class="run" title="Εκτέλεση προγράμματος (F5)"><svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z" fill="currentColor"/></svg><span>Εκτέλεση</span></button>
     <button data-cmd="stop" class="stop" title="Διακοπή / Επανεκκίνηση (Ctrl+F2)"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor"/></svg><span>Διακοπή</span></button>
+    <button data-cmd="dataChoose" id="btn-data" class="file toggle" title="Δεδομένα: η input() παίρνει τιμές από αρχείο (.txt), με γεννήτρια τυχαίων τιμών. Όταν τελειώσουν, οι τιμές δίνονται από το πληκτρολόγιο."><svg viewBox="0 0 24 24"><path d="M6 2h8l5 5v15H6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 2v5h5M9 12h7M9 15.5h7M9 19h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Δεδομένα</span></button>
     <div class="speed" title="Ταχύτητα εκτέλεσης. Με «Γραμμή γραμμή», «Αργή» και «Μέτρια» φαίνεται στον editor ποια γραμμή εκτελείται και στις Μεταβλητές πώς αλλάζουν οι τιμές.">
       <svg viewBox="0 0 24 24"><path d="M3.5 17a8.5 8.5 0 1 1 17 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 17l4.5-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       <div class="speed-slider">
@@ -34,6 +36,16 @@
     <button data-cmd="toggleAssistant" title="Βοηθός (F7)" class="toggle" id="btn-assist"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Βοηθός</span></button>
     <button data-cmd="toggleRecall" title="Θέλω να θυμηθώ: αλγόριθμοι και εντολές (F8)" class="toggle" id="btn-recall"><svg viewBox="0 0 24 24"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Θέλω να θυμηθώ</span></button>
     <button data-cmd="help" title="Οδηγός χρήσης (F1)" class="icon-only"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  </div>
+
+  <!-- Ειδοποίηση για νέα έκδοση -->
+  <div id="update-bar" class="update-bar" hidden role="status">
+    <span id="up-msg" class="up-msg"></span>
+    <span id="up-prog" class="up-prog" hidden><i id="up-prog-bar"></i></span>
+    <span class="spacer"></span>
+    <button type="button" id="up-notes" class="mini" hidden>Τι νέο υπάρχει</button>
+    <button type="button" id="up-go" class="mini primary"></button>
+    <button type="button" id="up-later" class="mini">Αργότερα</button>
   </div>
 
   <div id="main">
@@ -74,6 +86,7 @@
     <aside id="side">
       <section id="vars-panel" class="side-panel">
         <div class="panel-head"><span class="panel-title">Μεταβλητές</span><span class="spacer"></span><button class="mini close" data-cmd="toggleVariables" title="Κλείσιμο">×</button></div>
+        <div class="vars-tools"><button class="mini par-toggle" id="vars-par" title="Παράλληλες λίστες: οι λίστες με το ίδιο πλήθος στοιχείων η μία δίπλα στην άλλη, ώστε σε κάθε γραμμή να φαίνεται το ίδιο στοιχείο (π.χ. onomata[i] και vathmoi[i]). Περιλαμβάνει και τους πίνακες (λίστες από λίστες) με τις ίδιες γραμμές ή στήλες.">⇅ Παράλληλες λίστες</button></div>
         <div id="vars" class="panel-body"></div>
       </section>
       <div class="splitter h" id="split-assist"></div>
@@ -92,6 +105,7 @@
   <footer id="statusbar">
     <span id="st-state" class="st-state idle">● Έτοιμο</span>
     <span id="st-file" class="st-file"></span>
+    <span id="st-data" class="st-data" hidden></span>
     <span class="spacer"></span>
     <span id="st-present" class="st-class present" hidden></span>
     <span id="st-watch" class="st-class present" hidden></span>
@@ -118,7 +132,15 @@
           <input type="number" id="set-font" min="10" max="32">
         </label>
         <label class="field">Θέμα
-          <select id="set-theme"><option value="light">Φωτεινό</option><option value="dark">Σκοτεινό</option></select>
+          <select id="set-theme"></select>
+        </label>
+      </div>
+      <div class="grid2">
+        <label class="field">Γραμματοσειρά κώδικα και Shell
+          <select id="set-editor-font"></select>
+        </label>
+        <label class="field">Γραμματοσειρά περιβάλλοντος
+          <select id="set-ui-font"></select>
         </label>
       </div>
       <label class="field">Ελληνικά ονόματα μεταβλητών
@@ -130,12 +152,86 @@
         <small>Στις εξετάσεις και στο σχολικό βιβλίο τα ονόματα μεταβλητών γράφονται με λατινικούς χαρακτήρες (greeklish).</small>
       </label>
       <label class="check"><input type="checkbox" id="set-save"> Αυτόματη αποθήκευση πριν την εκτέλεση</label>
+      <label class="check"><input type="checkbox" id="set-update"> Έλεγχος για νέες εκδόσεις κατά την εκκίνηση (απαιτεί internet)</label>
       <label class="check"><input type="checkbox" id="set-live"> Έλεγχος σύνταξης καθώς γράφω</label>
       <div class="buttons">
         <button value="cancel">Άκυρο</button>
         <button value="ok" class="primary">Αποθήκευση</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- Δεδομένα για την input(): επεξεργασία του αρχείου δεδομένων με γεννήτρια τιμών -->
+  <dialog id="dlg-data">
+    <div class="dd-wrap">
+      <div class="dd-head">
+        <h2>📄 Δεδομένα για την input()</h2>
+        <span id="dd-prog" class="dd-prog"></span>
+        <span class="spacer"></span>
+        <span id="dd-file" class="dd-file"></span>
+      </div>
+      <div class="dd-body">
+        <section class="dd-left">
+          <div class="dd-label">Οι τιμές του αρχείου: <b>κάθε εντολή εισόδου παίρνει με τη σειρά την επόμενη γραμμή</b>. Μπορείς να γράφεις και να διορθώνεις ελεύθερα.</div>
+          <textarea id="dd-text" class="mono" spellcheck="false" wrap="off" aria-label="Οι τιμές του αρχείου δεδομένων"></textarea>
+          <div class="dd-stat">
+            <span id="dd-stat"></span>
+            <span class="spacer"></span>
+            <button type="button" id="dd-ask" title="Βάζει στη θέση του κέρσορα μια γραμμή με «?»: αυτή η τιμή θα δοθεί από το πληκτρολόγιο (π.χ. ο αριθμός ή το όνομα που ψάχνουμε)">＋ ? από πληκτρολόγιο</button>
+            <button type="button" id="dd-clear" title="Σβήνει όλες τις τιμές και αφήνει μόνο τις οδηγίες">Καθαρισμός</button>
+          </div>
+        </section>
+        <section class="dd-gen">
+          <h3>🎲 Γεννήτρια τιμών</h3>
+          <div class="dd-kinds" id="dd-kinds" role="radiogroup" aria-label="Είδος τιμών"></div>
+          <div class="dd-row">
+            <label class="field dd-count-field">Πλήθος (1–50)
+              <input type="number" id="dd-count" min="1" max="50" step="1" value="10">
+            </label>
+            <div class="field">Σειρά
+              <div class="dd-seg" id="dd-order" role="radiogroup" aria-label="Σειρά">
+                <button type="button" data-order="random" title="Με τη σειρά που βγήκαν, ανακατεμένες">Τυχαία</button>
+                <button type="button" data-order="asc" title="Από τη μικρότερη στη μεγαλύτερη (όπως συγκρίνει η Python με <)">Αύξουσα ↑</button>
+                <button type="button" data-order="desc" title="Από τη μεγαλύτερη στη μικρότερη (όπως συγκρίνει η Python με >)">Φθίνουσα ↓</button>
+              </div>
+            </div>
+          </div>
+          <div class="dd-row" id="dd-range">
+            <label class="field">Από
+              <input type="number" id="dd-min" step="any">
+            </label>
+            <label class="field">Έως
+              <input type="number" id="dd-max" step="any">
+            </label>
+            <label class="field" id="dd-dec-field">Δεκαδικά
+              <select id="dd-dec"><option value="1">1 (π.χ. 15.5)</option><option value="2">2 (π.χ. 15.25)</option></select>
+            </label>
+          </div>
+          <label class="check"><input type="checkbox" id="dd-unique" checked> Χωρίς επαναλήψεις (κάθε τιμή μία φορά)</label>
+          <label class="check" id="dd-caps-row" title="Τα κεφαλαία χωρίς τόνους πληκτρολογούνται εύκολα στην αναζήτηση και ταξινομούνται σωστά αλφαβητικά από την Python."><input type="checkbox" id="dd-caps" checked> Κεφαλαία χωρίς τόνους</label>
+          <div class="dd-prev-head">
+            <span>Προεπισκόπηση</span>
+            <span class="spacer"></span>
+            <button type="button" id="dd-reroll" title="Νέες τυχαίες τιμές με τις ίδιες ρυθμίσεις">🎲 Νέα κλήρωση</button>
+          </div>
+          <div id="dd-preview" class="dd-preview mono" aria-live="polite"></div>
+          <div id="dd-note" class="dd-note" hidden></div>
+          <div class="dd-add">
+            <button type="button" id="dd-append" class="primary" title="Οι τιμές της προεπισκόπησης μπαίνουν στο τέλος του αρχείου, μία σε κάθε γραμμή">＋ Πρόσθεσε στο τέλος</button>
+            <button type="button" id="dd-zip">⇄ Εναλλάξ με την προηγούμενη</button>
+          </div>
+          <p class="dd-tip"><b>Παράλληλες λίστες:</b> αν το πρόγραμμα κάνει <code>onoma = input()</code> και <code>vathmos = float(input())</code> μέσα σε for, πρόσθεσε πρώτα τα ονόματα και μετά τους βαθμούς με <b>⇄ Εναλλάξ</b>. Οι γραμμές μπαίνουν τότε «όνομα, βαθμός, όνομα, βαθμός…», με τη σειρά που τις ζητούν οι εντολές εισόδου.</p>
+        </section>
+      </div>
+      <div class="buttons dd-foot">
+        <button type="button" id="dd-open" title="Φόρτωση ενός αρχείου κειμένου (.txt) που έχεις ήδη">Άνοιγμα αρχείου…</button>
+        <button type="button" id="dd-new" title="Νέο, άδειο αρχείο δεδομένων (με την αποθήκευση θα ζητηθεί όνομα)">Νέο αρχείο</button>
+        <button type="button" id="dd-detach" title="Οι εντολές εισόδου ξαναπαίρνουν τιμές μόνο από το πληκτρολόγιο. Το αρχείο δεν σβήνεται.">Απενεργοποίηση</button>
+        <span class="spacer"></span>
+        <button type="button" id="dd-cancel">Άκυρο</button>
+        <button type="button" id="dd-save" class="primary" title="Αποθήκευση του αρχείου (.txt) και χρήση του από τις εντολές εισόδου του προγράμματος (Ctrl+S)">Αποθήκευση και χρήση</button>
+      </div>
+    </div>
   </dialog>
 
   <!-- Τάξη -->
@@ -186,6 +282,12 @@
         <p>Η γραμμή που θα εκτελεστεί <b>τώρα</b> φωτίζεται στον editor με ➜, και στις <b>Μεταβλητές</b> φαίνονται οι τιμές να αλλάζουν
           (μέσα σε συνάρτηση, και οι τοπικές της μεταβλητές). Η ταχύτητα αλλάζει και ενώ τρέχει το πρόγραμμα: π.χ. από «Γραμμή γραμμή»
           σε «Κανονική» για να ολοκληρωθεί γρήγορα.</p>
+        <h3>Δεδομένα για την input()</h3>
+        <p>Με το κουμπί <b>Δεδομένα</b> γράφεις μία φορά τις τιμές που ζητά η <code>input()</code> (π.χ. για να γεμίσει μια λίστα), αντί να τις πληκτρολογείς σε κάθε εκτέλεση. Η <b>γεννήτρια τιμών</b> φτιάχνει έως 50 τυχαίους αριθμούς, ονόματα, ονοματεπώνυμα, αριθμούς ταυτότητας, πόλεις ή χώρες, σε τυχαία, αύξουσα ή φθίνουσα σειρά. Με <b>⇄ Εναλλάξ</b> μπαίνουν στη σειρά δεδομένα για παράλληλες λίστες. Μια γραμμή <code>?</code> σημαίνει «αυτή την τιμή τη δίνω από το πληκτρολόγιο». Κάθε γραμμή του αρχείου αντιστοιχεί σε μία κλήση της <code>input()</code>.</p>
+        <h3>Λίστες ως πίνακες</h3>
+        <p>Στις <b>Μεταβλητές</b>, όταν κάνεις κλικ σε μια λίστα, πλειάδα, λεξικό ή σύνολο, τα στοιχεία της εμφανίζονται σε <b>πίνακα</b> με τις θέσεις τους (η πρώτη θέση είναι το 0). Μια λίστα από λίστες φαίνεται ως δισδιάστατος πίνακας με γραμμές <code>i</code> και στήλες <code>j</code>. Με το κουμπί <b>⇅ Παράλληλες</b> οι λίστες με το ίδιο πλήθος στοιχείων εμφανίζονται δίπλα-δίπλα, ώστε σε κάθε γραμμή να φαίνεται το ίδιο στοιχείο (π.χ. <code>onomata[i]</code> και <code>vathmoi[i]</code>), με δείκτες «← i» για το πού δείχνουν οι μετρητές.</p>
+        <h3>Μεγάλα γράμματα για προβολή</h3>
+        <p>Κάθε πλαϊνή καρτέλα (Μεταβλητές, Βοηθός, Θέλω να θυμηθώ) έχει δικά της κουμπιά <b>A−</b> / <b>A+</b> (ή <kbd>Ctrl</kbd> + ροδάκι πάνω της) για το μέγεθος των γραμμάτων. Το <b>⛶</b> την απλώνει σε όλο το παράθυρο, για προβολή στον πίνακα. Ξαναπάτα το ή πάτα <kbd>Esc</kbd> για επιστροφή.</p>
         <h3>Shell (&gt;&gt;&gt;)</h3>
         <p>Μετά την εκτέλεση, στο <code>&gt;&gt;&gt;</code> μπορείς να γράψεις εντολές Python και να δεις αμέσως το αποτέλεσμα.
           Οι μεταβλητές του προγράμματος είναι διαθέσιμες (π.χ. γράψε <code>lista</code> για να δεις την τιμή της).
@@ -245,7 +347,10 @@
 
   <script src="../../node_modules/monaco-editor/min/vs/loader.js"></script>
   <script src="pydocs.js"></script>
+  <script src="datagen.js"></script>
+  <script src="dataScreen.js"></script>
   <script src="errorHelp.js"></script>
+  <script src="themes.js"></script>
   <script src="editor.js"></script>
   <script src="shell.js"></script>
   <script src="panels.js"></script>
