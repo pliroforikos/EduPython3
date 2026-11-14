@@ -155,5 +155,153 @@
     if (ui.family) rootStyle.setProperty('--font-ui', ui.stack); else rootStyle.removeProperty('--font-ui');
   }
 
-  return { LIST, GROUPS, get, bodyClasses, applyToBody, defineMonaco, FONTS, monoStack, uiStack, applyFonts };
+  // ------------------------------------------------------------ χρώμα γραμμής τίτλου, μενού και εργαλείων
+  /**
+   * Χρώματα για τη γραμμή μενού και εργαλείων (στυλ Android Studio): όλη η κεφαλίδα έχει ένα χρώμα φόντου.
+   * 'theme' = ίδιο με το θέμα (προεπιλογή)· 'custom' = ό,τι διαλέξει ο χρήστης (settings.headerColor = '#rrggbb').
+   */
+  const HEADER_COLORS = [
+    { id: 'theme', label: 'Ίδιο με το θέμα' },
+    { id: 'graphite', label: 'Γραφίτης (Android Studio)', color: '#3c3f41' },
+    { id: 'charcoal', label: 'Σκούρο γκρι', color: '#2b2d30' },
+    { id: 'black', label: 'Μαύρο', color: '#16171a' },
+    { id: 'navy', label: 'Μπλε ναυτικό', color: '#1f3a5f' },
+    { id: 'blue', label: 'Μπλε', color: '#2f5fa8' },
+    { id: 'indigo', label: 'Λουλακί', color: '#3f3f8f' },
+    { id: 'purple', label: 'Μωβ', color: '#5b3a8c' },
+    { id: 'teal', label: 'Τιρκουάζ', color: '#0f6b66' },
+    { id: 'green', label: 'Πράσινο', color: '#2e6b3f' },
+    { id: 'red', label: 'Κόκκινο', color: '#8a2b2b' },
+    { id: 'orange', label: 'Πορτοκαλί', color: '#b3541e' },
+    { id: 'silver', label: 'Ασημί', color: '#dfe1e5' },
+    { id: 'white', label: 'Λευκό', color: '#ffffff' },
+    { id: 'custom', label: 'Άλλο χρώμα…' },
+  ];
+
+  const HEX = /^#[0-9a-f]{6}$/i;
+
+  /** Το χρώμα (#rrggbb) που αντιστοιχεί σε μια τιμή της ρύθμισης headerColor, ή null για «ίδιο με το θέμα». */
+  function headerColorOf(value) {
+    if (typeof value === 'string' && HEX.test(value)) return value.toLowerCase();
+    const preset = HEADER_COLORS.find((c) => c.id === value);
+    return preset && preset.color ? preset.color : null;
+  }
+
+  /** Φωτεινότητα (WCAG) ενός χρώματος #rrggbb, από 0 (μαύρο) έως 1 (λευκό). */
+  function luminance(hex) {
+    const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+
+  /** Λόγος αντίθεσης (WCAG) δύο χρωμάτων #rrggbb, από 1 έως 21. */
+  function contrast(a, b) {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+
+  /** Ανάμειξη δύο χρωμάτων #rrggbb: t = 0 → a, t = 1 → b. */
+  function mix(a, b, t) {
+    const ch = (i) => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - t) + parseInt(b.slice(i, i + 2), 16) * t);
+    return '#' + [1, 3, 5].map((i) => ch(i).toString(16).padStart(2, '0')).join('');
+  }
+
+  /** Κατευθύνσεις της διαβάθμισης (gradient): από το πρώτο προς το δεύτερο χρώμα. */
+  const HEADER_DIRECTIONS = [
+    { id: 'right', label: 'Αριστερά → δεξιά', css: '90deg' },
+    { id: 'left', label: 'Δεξιά → αριστερά', css: '270deg' },
+    { id: 'down', label: 'Πάνω → κάτω', css: '180deg' },
+    { id: 'diag', label: 'Διαγώνια', css: '115deg' },
+  ];
+  const dirOf = (id) => HEADER_DIRECTIONS.find((d) => d.id === id) || HEADER_DIRECTIONS[0];
+
+  /** Η διαβάθμιση ως τιμή CSS για το φόντο της κεφαλίδας. */
+  function headerImage(c1, c2, dir) {
+    return `linear-gradient(${dirOf(dir).css}, ${c1}, ${c2})`;
+  }
+
+  /**
+   * Το χρώμα της διαβάθμισης στη δεξιά άκρη της γραμμής τίτλου. Τα κουμπιά του παραθύρου (ελαχιστοποίηση, κλείσιμο…)
+   * τα σχεδιάζει το σύστημα σε ΕΝΑ χρώμα, οπότε παίρνουν το χρώμα που έχει εκεί η διαβάθμιση, για να μη φαίνονται «κομμένα».
+   */
+  function headerEdgeColor(c1, c2, dir) {
+    if (dir === 'right') return c2;
+    if (dir === 'left' || dir === 'down') return c1;
+    return mix(c1, c2, 0.45); // διαγώνια: άνω δεξιά γωνία
+  }
+
+  /** Τα υπόλοιπα χρώματα της κεφαλίδας (hover, διαχωριστικά, Εκτέλεση/Διακοπή) για ανοιχτά ή σκούρα γράμματα. */
+  function headerPalette(lightText) {
+    return {
+      muted: lightText ? 'rgba(242, 243, 245, 0.7)' : 'rgba(27, 28, 31, 0.68)',
+      hover: lightText ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.09)',
+      active: lightText ? 'rgba(255, 255, 255, 0.24)' : 'rgba(0, 0, 0, 0.17)',
+      sep: lightText ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.18)',
+      run: lightText ? '#6cc070' : '#2e7d32',
+      stop: lightText ? '#ff7b7b' : '#c62828',
+      dark: lightText,
+    };
+  }
+
+  const MIN_CONTRAST = 4.5;
+
+  /**
+   * Τα χρώματα της κεφαλίδας για φόντο `bg` (#rrggbb), ή για διαβάθμιση από `bg` σε `bg2`. Επιστρέφει τιμές για τις
+   * μεταβλητές CSS --hdr-*.
+   *
+   * Ένα χρώμα: ανοιχτά γράμματα σε σκούρο φόντο, σκούρα σε ανοιχτό, όποιο δίνει τη μεγαλύτερη αντίθεση.
+   *
+   * Διαβάθμιση: τα ίδια γράμματα πρέπει να διαβάζονται και στις δύο άκρες. Αν τα δύο χρώματα διαφέρουν πολύ σε
+   * φωτεινότητα (π.χ. σκούρο γκρι → ασημί), κανένα χρώμα γραμμάτων δεν ταιριάζει και στα δύο· τότε η άκρη που δεν
+   * διαβάζεται μαλακώνει όσο χρειάζεται (το λιγότερο δυνατό). Το bg και το bg2 που επιστρέφονται είναι τα χρώματα που
+   * πρέπει να ζωγραφιστούν.
+   */
+  function headerStyle(bg, bg2) {
+    if (!bg2) {
+      // Απαλά γράμματα (όπως στο Android Studio)· σε μεσαία έντονα χρώματα δεν αρκούν, και τότε καθαρό λευκό ή μαύρο
+      // (το καλύτερο από τα δύο δίνει πάντα αντίθεση τουλάχιστον 4.58)
+      let LIGHT = '#f2f3f5';
+      let DARK = '#1b1c1f';
+      if (Math.max(contrast(bg, LIGHT), contrast(bg, DARK)) < MIN_CONTRAST) {
+        LIGHT = '#ffffff';
+        DARK = '#000000';
+      }
+      const lightText = contrast(bg, LIGHT) >= contrast(bg, DARK);
+      return { bg, bg2: null, menu: bg, fg: lightText ? LIGHT : DARK, ...headerPalette(lightText) };
+    }
+    const candidates = [
+      { fg: '#f2f3f5', light: true, toward: '#000000' },
+      { fg: '#1b1c1f', light: false, toward: '#ffffff' },
+      { fg: '#ffffff', light: true, toward: '#000000' },
+      { fg: '#000000', light: false, toward: '#ffffff' },
+    ];
+    // Για κάθε επιλογή γραμμάτων: πόσο πρέπει να μαλακώσει κάθε άκρη (t = 0: καθόλου) ώστε να διαβάζεται
+    const fit = (color, cand) => {
+      for (let t = 0; t <= 1.0001; t += 0.02) {
+        const c = mix(color, cand.toward, Math.min(t, 1));
+        if (contrast(c, cand.fg) >= MIN_CONTRAST) return { color: t === 0 ? color : c, t };
+      }
+      return { color: cand.toward, t: 1 };
+    };
+    let best = null;
+    for (const cand of candidates) {
+      const a = fit(bg, cand);
+      const b = fit(bg2, cand);
+      const cost = a.t + b.t;
+      if (!best || cost < best.cost - 1e-9) best = { cand, a, b, cost };
+    }
+    const { cand, a, b } = best;
+    return {
+      bg: a.color,
+      bg2: b.color,
+      menu: mix(a.color, b.color, 0.5), // φόντο των πτυσσόμενων μενού
+      fg: cand.fg,
+      ...headerPalette(cand.light),
+    };
+  }
+
+  return {
+    LIST, GROUPS, get, bodyClasses, applyToBody, defineMonaco, FONTS, monoStack, uiStack, applyFonts,
+    HEADER_COLORS, HEADER_DIRECTIONS, headerColorOf, headerStyle, headerImage, headerEdgeColor, luminance, contrast, mix,
+  };
 });

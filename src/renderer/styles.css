@@ -223,7 +223,7 @@ body.theme-jb-islands-light {
 
 /* Νησίδες: ο editor, το Shell και κάθε πλαϊνή καρτέλα είναι στρογγυλεμένα πάνελ πάνω στο πλαίσιο */
 body.theme-islands { background: var(--frame); }
-body.theme-islands #toolbar { background: var(--frame); border-bottom: none; }
+body.theme-islands #toolbar { border-bottom: none; }
 body.theme-islands #main { padding: 0 6px 6px; background: var(--frame); }
 body.theme-islands #tabs { border-radius: 10px 10px 0 0; }
 body.theme-islands #editor-host { border-radius: 0 0 10px 10px; background: var(--bg); }
@@ -267,23 +267,114 @@ button { font: inherit; color: inherit; }
 ::-webkit-scrollbar-corner { background: transparent; }
 
 /* ------------------------------------------------------------------ toolbar */
+/*
+ * Κεφαλίδα = γραμμή τίτλου (με το μενού) + γραμμή εργαλείων, με ΕΝΑ χρώμα φόντου, όπως στο Android Studio.
+ * Το χρώμα ρυθμίζεται από τις Ρυθμίσεις: το app.js ορίζει τα --hdr-* στο body. Χωρίς επιλογή ισχύει το χρώμα του θέματος.
+ * Μέσα στην κεφαλίδα τα βασικά χρώματα (--fg, --muted, --border, --bg…) παίρνουν τιμές της κεφαλίδας, ώστε όλα τα
+ * κουμπιά και ο ρυθμιστής ταχύτητας να διαβάζονται σε οποιοδήποτε φόντο.
+ */
+body {
+  --hdr-bg: var(--toolbar-bg);
+  --hdr-fg: var(--fg);
+  --hdr-muted: var(--muted);
+  --hdr-hover: var(--tab-hover);
+  --hdr-active: var(--sel-row);
+  --hdr-sep: var(--border);
+  --hdr-menu: var(--hdr-bg);   /* φόντο των πτυσσόμενων μενού */
+  --hdr-image: none;           /* διαβάθμιση (gradient), όταν έχει επιλεγεί δεύτερο χρώμα */
+}
+body.theme-islands { --hdr-bg: var(--frame); }
+
+/* Η κεφαλίδα (γραμμή τίτλου + εργαλεία) έχει ένα φόντο, ώστε η διαβάθμιση να τις καλύπτει και τις δύο μαζί */
+#header {
+  flex: none;
+  background-color: var(--hdr-bg);
+  background-image: var(--hdr-image);
+}
+
+#titlebar { display: none; }
+html.custom-header #titlebar {
+  display: flex;
+  align-items: center;
+  flex: none;
+  height: 36px;
+  padding: 0 calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)) 0 8px; /* χώρος για τα κουμπιά του παραθύρου */
+  background: transparent;
+  color: var(--hdr-fg);
+  -webkit-app-region: drag; /* σύρεται το παράθυρο· διπλό κλικ: μεγιστοποίηση */
+  user-select: none;
+}
+.tb-icon { width: 20px; height: 20px; margin: 0 4px 0 4px; flex: none; }
+#menubar { display: flex; align-items: center; gap: 1px; margin-left: 6px; -webkit-app-region: no-drag; }
+#menubar button {
+  height: 28px; padding: 0 10px; border: 0; border-radius: 6px;
+  background: transparent; color: inherit; font-size: 13px; cursor: default; white-space: nowrap;
+}
+#menubar button:hover, #menubar button:focus-visible { background: var(--hdr-hover); outline: none; }
+#menubar button:active, #menubar button.open { background: var(--hdr-active); }
+body.menu-open #titlebar { -webkit-app-region: no-drag; } /* ώστε ένα κλικ στη γραμμή τίτλου να κλείνει το μενού */
+
+/* Πτυσσόμενα μενού (σχεδιάζονται από το menubar.js με τα χρώματα της κεφαλίδας) */
+.menu-pop {
+  --m-fg: var(--hdr-fg);
+  position: fixed;
+  z-index: 3000;
+  min-width: 220px;
+  max-width: min(520px, calc(100vw - 8px));
+  overflow-y: auto;
+  padding: 5px;
+  background: var(--hdr-menu);
+  color: var(--m-fg);
+  border: 1px solid var(--hdr-sep);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.38), 0 2px 6px rgba(0, 0, 0, 0.25);
+  font-size: 13px;
+  user-select: none;
+  -webkit-app-region: no-drag;
+}
+.menu-pop .mi {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 10px 5px 8px; border-radius: 5px;
+  white-space: nowrap; cursor: default;
+}
+.menu-pop .mi.has-marks { padding-left: 6px; }
+.menu-pop .mi-mark { width: 14px; flex: none; text-align: center; font-size: 12px; }
+.menu-pop .mi-label { flex: 1; }
+.menu-pop .mi-acc { margin-left: 28px; color: var(--hdr-muted); font-size: 12px; }
+.menu-pop .mi-arrow { margin-left: 18px; font-size: 10px; }
+.menu-pop .mi.active { background: var(--hdr-active); }
+.menu-pop .mi.disabled { opacity: 0.45; }
+.menu-pop .mi-sep { height: 1px; margin: 5px 6px; background: var(--hdr-sep); }
+.tb-title {
+  flex: 1; min-width: 0; padding: 0 12px; text-align: center; font-size: 12.5px; color: var(--hdr-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 #toolbar {
+  --fg: var(--hdr-fg);
+  --muted: var(--hdr-muted);
+  --border: var(--hdr-sep);
+  --tab-hover: var(--hdr-hover);
+  --sel-row: var(--hdr-active);
+  --bg: var(--hdr-bg);
   flex: none;
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 5px 8px;
-  background: var(--toolbar-bg);
-  border-bottom: 1px solid var(--border);
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--hdr-fg);
+  border-bottom: 1px solid var(--hdr-sep);
   overflow: hidden;
 }
+html.custom-header #toolbar { padding-top: 2px; }
 #toolbar > * { flex: none; }
 #toolbar > .spacer { flex: 1; }
 #toolbar button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 34px;
+  height: 32px;
   padding: 0 11px;
   border: 1px solid transparent;
   border-radius: 7px;
@@ -300,10 +391,12 @@ button { font: inherit; color: inherit; }
 #toolbar button.icon-only { padding: 0 8px; }
 #toolbar .txt { font-weight: 600; font-size: 13px; }
 #toolbar .txt.big { font-size: 15px; }
-#toolbar button.run { background: var(--run); color: #fff; font-weight: 600; padding: 0 16px; }
-#toolbar button.run:hover { background: var(--run-hover); }
-#toolbar button.stop { color: var(--stop); }
-#toolbar button.stop:hover { background: var(--stop); color: #fff; }
+/* Στυλ Android Studio: επίπεδα κουμπιά, με πράσινο εικονίδιο για την Εκτέλεση και κόκκινο για τη Διακοπή */
+#toolbar button.run { background: transparent; color: var(--hdr-run, var(--run)); font-weight: 600; padding: 0 12px 0 10px; }
+#toolbar button.run svg { width: 21px; height: 21px; }
+#toolbar button.run:hover { background: var(--tab-hover); }
+#toolbar button.stop { color: var(--hdr-stop, var(--stop)); }
+#toolbar button.stop:hover { background: var(--tab-hover); }
 #toolbar button.stop:disabled, #toolbar button.run:disabled { opacity: 0.45; cursor: default; }
 #toolbar button.toggle.on { background: var(--sel-row); border-color: var(--border); }
 #toolbar .speed {
@@ -768,6 +861,7 @@ dialog p, dialog li { line-height: 1.55; }
 .field small { font-weight: 400; color: var(--muted); }
 .field .row { display: flex; gap: 6px; }
 .field .row input { flex: 1; }
+.field .row + .row { margin-top: 6px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .check { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13.5px; }
 dialog input[type=text], dialog input[type=number], dialog select {

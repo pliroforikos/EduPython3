@@ -9,6 +9,13 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="theme-light">
+  <!-- Γραμμή τίτλου με το μενού (Windows και Linux): ίδιο χρώμα με τη γραμμή εργαλείων, όπως στο Android Studio -->
+  <div id="header">
+  <div id="titlebar">
+    <img class="tb-icon" src="icon.png" alt="" draggable="false">
+    <nav id="menubar" aria-label="Μενού"></nav>
+    <div id="tb-title" class="tb-title"></div>
+  </div>
   <div id="toolbar" role="toolbar">
     <button data-cmd="new" class="file" title="Νέο πρόγραμμα (Ctrl+N)"><svg viewBox="0 0 24 24"><path d="M6 2h8l6 6v14H6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 2v6h6M13 12v6M10 15h6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>Νέο</span></button>
     <button data-cmd="open" class="file" title="Άνοιγμα (Ctrl+O)"><svg viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Άνοιγμα</span></button>
@@ -36,6 +43,7 @@
     <button data-cmd="toggleAssistant" title="Βοηθός (F7)" class="toggle" id="btn-assist"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Βοηθός</span></button>
     <button data-cmd="toggleRecall" title="Θέλω να θυμηθώ: αλγόριθμοι και εντολές (F8)" class="toggle" id="btn-recall"><svg viewBox="0 0 24 24"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5zM12 6.5v13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Θέλω να θυμηθώ</span></button>
     <button data-cmd="help" title="Οδηγός χρήσης (F1)" class="icon-only"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  </div>
   </div>
 
   <!-- Ειδοποίηση για νέα έκδοση -->
@@ -142,6 +150,23 @@
         <label class="field">Γραμματοσειρά περιβάλλοντος
           <select id="set-ui-font"></select>
         </label>
+      </div>
+      <div class="field">Χρώμα γραμμής μενού και εργαλείων
+        <div class="row">
+          <select id="set-header"></select>
+          <input type="color" id="set-header-color" value="#3c3f41" title="Διάλεξε χρώμα" hidden>
+        </div>
+        <small>Η γραμμή τίτλου, το μενού και τα εργαλεία έχουν το ίδιο χρώμα, όπως στο Android Studio. Τα γράμματα προσαρμόζονται μόνα τους ώστε να διαβάζονται. «Ίδιο με το θέμα»: ακολουθεί το θέμα εμφάνισης.</small>
+      </div>
+      <div class="field">Διαβάθμιση (gradient): δεύτερο χρώμα
+        <div class="row">
+          <select id="set-header2"></select>
+          <input type="color" id="set-header2-color" value="#7b3fe4" title="Διάλεξε χρώμα" hidden>
+        </div>
+        <div class="row" id="set-header-dir-row" hidden>
+          <select id="set-header-dir"></select>
+        </div>
+        <small>Το χρώμα αλλάζει σταδιακά από το πρώτο στο δεύτερο. Τα κουμπιά του παραθύρου (ελαχιστοποίηση, κλείσιμο) τα σχεδιάζει τα Windows σε ένα χρώμα και παίρνουν αυτό της άκρης τους. Αν τα δύο χρώματα διαφέρουν πολύ σε φωτεινότητα, το πιο έντονο άκρο μαλακώνει ώστε να διαβάζονται τα γράμματα.</small>
       </div>
       <label class="field">Ελληνικά ονόματα μεταβλητών
         <select id="set-greek-names">
@@ -351,6 +376,7 @@
   <script src="dataScreen.js"></script>
   <script src="errorHelp.js"></script>
   <script src="themes.js"></script>
+  <script src="menubar.js"></script>
   <script src="editor.js"></script>
   <script src="shell.js"></script>
   <script src="panels.js"></script>

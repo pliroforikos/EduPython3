@@ -6,6 +6,7 @@ const path = require('path');
 const { Backend, Checker, findPython, pythonVersion } = require('./pythonProcess');
 const { decodeBuffer, encodeForSave } = require('./encoding');
 const { buildMenu, examplesDir } = require('./menu');
+const { serializeMenu, findItem } = require('./menuData');
 const { TeacherServer, StudentClient, loadTrust, buildTrustFile, trustFilePath, lanAddresses, newPin, teacherModeAllowed } = require('./classroom');
 const { generateIdentity, fingerprint } = require('./classroomCert');
 const { Updater } = require('./updater');
@@ -27,6 +28,9 @@ const DEFAULT_SETTINGS = {
   showAssistant: true,
   showRecall: false,
   runSpeed: 'normal',
+  headerColor: 'theme',  // χρώμα γραμμής τίτλου, μενού και εργαλείων: 'theme' (ίδιο με το θέμα), προκαθορισμένο ή #rrggbb
+  headerColor2: '',       // δεύτερο χρώμα της διαβάθμισης (gradient)· κενό = ένα χρώμα
+  headerDir: 'right',    // κατεύθυνση της διαβάθμισης: right, left, down, diag
   liveCheck: true,
   autoUpdateCheck: true,
   openFiles: [],
@@ -292,6 +296,38 @@ ipcMain.on('openExternal', (_e, url) => {
   if (typeof url === 'string' && /^https?:/.test(url)) shell.openExternal(url);
 });
 
+// --- Γραμμή τίτλου με μενού (στυλ Android Studio) -----------------------------------
+// Στα Windows και στο Linux η γραμμή τίτλου και το μενού σχεδιάζονται από την εφαρμογή (ίδιο χρώμα με τη γραμμή
+// εργαλείων, ρυθμιζόμενο). Τα κουμπιά του παραθύρου (ελαχιστοποίηση, μεγιστοποίηση, κλείσιμο) τα βάζει το σύστημα
+// πάνω σε αυτή τη γραμμή. Το μενού μένει το ίδιο: ανοίγει σαν κανονικό μενού από τα κουμπιά της σελίδας.
+const CUSTOM_HEADER = process.platform === 'win32' || process.platform === 'linux';
+const HEADER_HEIGHT = 36;
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
+/**
+ * Το τρέχον μενού ως δεδομένα (ετικέτες, συντομεύσεις, σημάδια επιλογής) για να το σχεδιάσει η σελίδα με τα χρώματα
+ * της κεφαλίδας· τα κανονικά μενού των Windows δεν παίρνουν χρώμα. Ζητείται ξανά σε κάθε άνοιγμα, ώστε οι επιλογές
+ * (✓) να είναι πάντα σωστές.
+ */
+ipcMain.handle('titlebar:menu', () => serializeMenu(Menu.getApplicationMenu()));
+
+/** Εκτελεί το στοιχείο του μενού στη θέση path (π.χ. [0, 2] = τρίτο στοιχείο του πρώτου μενού), όπως αν είχε πατηθεί. */
+ipcMain.on('titlebar:invoke', (_e, menuPath) => {
+  const item = findItem(Menu.getApplicationMenu(), menuPath);
+  if (!item || item.enabled === false || item.submenu || !win || win.isDestroyed()) return;
+  try { item.click(undefined, win, win.webContents); } catch (_) { /* η εντολή απέτυχε: δεν επηρεάζει τη σελίδα */ }
+});
+
+/** Τα χρώματα των κουμπιών του παραθύρου πάνω στη γραμμή τίτλου: ίδιο φόντο με την κεφαλίδα. */
+ipcMain.on('titlebar:overlay', (_e, color, symbolColor) => {
+  if (!CUSTOM_HEADER || !HEX_COLOR.test(color) || !HEX_COLOR.test(symbolColor)) return;
+  settings.headerOverlay = { color, symbolColor };
+  saveSettings();
+  if (win && !win.isDestroyed()) {
+    try { win.setTitleBarOverlay({ color, symbolColor, height: HEADER_HEIGHT }); } catch (_) { /* παλιότερο σύστημα */ }
+  }
+});
+
 // --- Εκτέλεση -------------------------------------------------------------------
 ipcMain.on('backend:run', (_e, { path: p, source, trace, data }) => {
   backend.run({ path: p, source, encoding: settings.stringEncoding, trace, data });
@@ -544,6 +580,17 @@ function createWindow() {
     backgroundColor: Themes.get(settings.theme).window,
     icon: path.join(__dirname, '..', 'renderer', 'icon.png'),
     show: false,
+    ...(CUSTOM_HEADER
+      ? {
+          titleBarStyle: 'hidden',
+          titleBarOverlay: {
+            // το χρώμα που είχε η κεφαλίδα την τελευταία φορά, ώστε να μη «αναβοσβήνει» στην εκκίνηση
+            color: (settings.headerOverlay && settings.headerOverlay.color) || Themes.get(settings.theme).window,
+            symbolColor: (settings.headerOverlay && settings.headerOverlay.symbolColor) || (Themes.get(settings.theme).dark ? '#dfe1e5' : '#1b1c1f'),
+            height: HEADER_HEIGHT,
+          },
+        }
+      : {}),
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload.js'),
       contextIsolation: true,
@@ -553,6 +600,7 @@ function createWindow() {
     },
   });
   if (w.maximized) win.maximize();
+  if (CUSTOM_HEADER) win.setMenuBarVisibility(false); // το μενού το δείχνει η σελίδα· οι συντομεύσεις (F5, Ctrl+S…) μένουν ενεργές
   win.once('ready-to-show', () => win.show());
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
 

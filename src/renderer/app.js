@@ -99,6 +99,7 @@
       }
       ES().init(monaco);
       root.Themes.applyToBody(document.body, this.settings.theme);
+      this.initHeader();
 
       this.editor = monaco.editor.create($('#editor-host'), { ...ES().editorOptions(this.settings), model: null });
       this.marks = new (ES().ErrorMarks)(monaco, this.editor);
@@ -347,6 +348,7 @@
       const t = this.active;
       if (!t) return;
       document.title = `${t.title}${this.isDirty(t) ? ' ●' : ''} – EduPython3`;
+      $('#tb-title').textContent = document.title;
       $('#st-file').textContent = t.path || '(δεν έχει αποθηκευτεί)';
     },
 
@@ -1454,6 +1456,7 @@
       this.monaco.editor.setTheme(root.Themes.get(this.settings.theme).monaco);
       if ('showVariables' in patch || 'showAssistant' in patch || 'showRecall' in patch) this.applyPanels();
       if ('fontSize' in patch) this.applyFont();
+      if ('theme' in patch || 'headerColor' in patch || 'headerColor2' in patch || 'headerDir' in patch) this.applyHeader();
       if ('runSpeed' in patch) this.applySpeed();
       if ('liveCheck' in patch || 'greekNames' in patch) this.tabs.forEach((t) => this.scheduleCheck(t, 10));
     },
@@ -1461,6 +1464,72 @@
     setFont(size) {
       size = Math.max(10, Math.min(32, size));
       this.updateSettings({ fontSize: size });
+    },
+
+    // ================================================================ κεφαλίδα: γραμμή τίτλου, μενού και εργαλεία
+    /**
+     * Στα Windows και στο Linux η γραμμή τίτλου με το μενού σχεδιάζεται από την εφαρμογή (στυλ Android Studio):
+     * τα κουμπιά του μενού ανοίγουν πτυσσόμενα μενού με τα χρώματα της κεφαλίδας (menubar.js) και τα ίδια στοιχεία και
+     * συντομεύσεις με το κανονικό μενού. Alt+γράμμα ανοίγει το αντίστοιχο μενού.
+     */
+    async initHeader() {
+      const T = root.Themes;
+      const sel = $('#set-header');
+      for (const c of T.HEADER_COLORS) sel.appendChild(new Option(c.label, c.id));
+      sel.addEventListener('change', () => { $('#set-header-color').hidden = sel.value !== 'custom'; });
+      // Δεύτερο χρώμα της διαβάθμισης: «Κανένα» (ένα χρώμα) ή ένα από τα χρώματα
+      const sel2 = $('#set-header2');
+      sel2.appendChild(new Option('Κανένα (ένα χρώμα)', 'none'));
+      for (const c of T.HEADER_COLORS) if (c.id !== 'theme') sel2.appendChild(new Option(c.label, c.id));
+      const syncGradientUi = () => {
+        $('#set-header2-color').hidden = sel2.value !== 'custom';
+        $('#set-header-dir-row').hidden = sel2.value === 'none';
+      };
+      sel2.addEventListener('change', syncGradientUi);
+      for (const d of T.HEADER_DIRECTIONS) $('#set-header-dir').appendChild(new Option(d.label, d.id));
+
+      const custom = api.platform === 'win32' || api.platform === 'linux';
+      document.documentElement.classList.toggle('custom-header', custom);
+      this.applyHeader();
+      if (!custom) return;
+
+      this.menubar = new root.MenuBar($('#menubar'), { menu: () => api.titlebar.menu(), invoke: (p) => api.titlebar.invoke(p) });
+      await this.menubar.load();
+    },
+
+    /**
+     * Χρώμα της κεφαλίδας από τις Ρυθμίσεις: ένα χρώμα ή διαβάθμιση από το πρώτο στο δεύτερο. Χωρίς επιλογή ισχύει το
+     * χρώμα του θέματος. Ορίζει τις μεταβλητές --hdr-* και στέλνει στην κύρια διεργασία τα χρώματα των κουμπιών του παραθύρου.
+     */
+    applyHeader() {
+      const T = root.Themes;
+      const style = document.body.style;
+      const names = ['--hdr-bg', '--hdr-fg', '--hdr-muted', '--hdr-hover', '--hdr-active', '--hdr-sep', '--hdr-run', '--hdr-stop', '--hdr-menu', '--hdr-image'];
+      for (const n of names) style.removeProperty(n);
+
+      const toHex = (css) => {
+        const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(css);
+        return m ? '#' + [m[1], m[2], m[3]].map((n) => Number(n).toString(16).padStart(2, '0')).join('') : null;
+      };
+      const themeColor = toHex(getComputedStyle($('#header')).backgroundColor); // το χρώμα του θέματος (χωρίς αλλαγές)
+      const c1 = T.headerColorOf(this.settings.headerColor);
+      const c2 = T.headerColorOf(this.settings.headerColor2);
+      const dir = this.settings.headerDir;
+
+      let edge = themeColor;
+      if (c1 || c2) {
+        const first = c1 || themeColor;
+        const s = T.headerStyle(first, c2 || null);
+        const vars = { '--hdr-bg': s.bg, '--hdr-menu': s.menu, '--hdr-fg': s.fg, '--hdr-muted': s.muted, '--hdr-hover': s.hover, '--hdr-active': s.active, '--hdr-sep': s.sep, '--hdr-run': s.run, '--hdr-stop': s.stop };
+        if (c2) vars['--hdr-image'] = T.headerImage(s.bg, s.bg2, dir); // s.bg2 = c2, μαλακωμένο αν δεν διαβάζονταν τα γράμματα
+        for (const [k, v] of Object.entries(vars)) style.setProperty(k, v);
+        edge = c2 ? T.headerEdgeColor(s.bg, s.bg2, dir) : s.bg;
+      }
+      // Τα κουμπιά του παραθύρου (ελαχιστοποίηση, μεγιστοποίηση, κλείσιμο) πάνω στη γραμμή τίτλου παίρνουν το χρώμα της άκρης
+      if (api.platform === 'win32' || api.platform === 'linux') {
+        const fg = toHex(getComputedStyle($('#toolbar')).color);
+        if (edge && fg) api.titlebar.overlay(edge, fg);
+      }
     },
 
     applyFont() {
@@ -1500,6 +1569,22 @@
       $('#set-theme').value = root.Themes.get(s.theme).id;
       $('#set-editor-font').value = s.editorFont || 'default';
       $('#set-ui-font').value = s.uiFont || 'default';
+      {
+        const hex = root.Themes.headerColorOf(s.headerColor);
+        const preset = root.Themes.HEADER_COLORS.find((c) => c.id === s.headerColor);
+        const isCustom = !!hex && !(preset && preset.color);
+        $('#set-header').value = isCustom ? 'custom' : preset && preset.id !== 'custom' ? preset.id : 'theme';
+        $('#set-header-color').value = hex || '#3c3f41';
+        $('#set-header-color').hidden = !isCustom;
+        const hex2 = root.Themes.headerColorOf(s.headerColor2);
+        const preset2 = root.Themes.HEADER_COLORS.find((c) => c.id === s.headerColor2);
+        const isCustom2 = !!hex2 && !(preset2 && preset2.color);
+        $('#set-header2').value = !hex2 ? 'none' : isCustom2 ? 'custom' : preset2.id;
+        $('#set-header2-color').value = hex2 || '#7b3fe4';
+        $('#set-header2-color').hidden = !isCustom2;
+        $('#set-header-dir').value = root.Themes.HEADER_DIRECTIONS.some((d) => d.id === s.headerDir) ? s.headerDir : 'right';
+        $('#set-header-dir-row').hidden = !hex2;
+      }
       if ($('#set-greek-names')) $('#set-greek-names').value = s.greekNames || 'warn';
       $('#set-save').checked = !!s.saveBeforeRun;
       $('#set-live').checked = !!s.liveCheck;
@@ -1541,6 +1626,9 @@
           theme: $('#set-theme').value,
           editorFont: $('#set-editor-font').value,
           uiFont: $('#set-ui-font').value,
+          headerColor: $('#set-header').value === 'custom' ? $('#set-header-color').value : $('#set-header').value,
+          headerColor2: $('#set-header2').value === 'none' ? '' : $('#set-header2').value === 'custom' ? $('#set-header2-color').value : $('#set-header2').value,
+          headerDir: $('#set-header-dir').value,
           greekNames: $('#set-greek-names') ? $('#set-greek-names').value : (this.settings.greekNames || 'warn'),
           saveBeforeRun: $('#set-save').checked,
           liveCheck: $('#set-live').checked,

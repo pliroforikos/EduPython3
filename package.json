@@ -1,7 +1,7 @@
 {
   "name": "edupython3",
   "productName": "EduPython3",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Φιλικό περιβάλλον προγραμματισμού Python 3 για μαθητές (τύπου Thonny)",
   "main": "src/main/main.js",
   "desktopName": "edupython3.desktop",

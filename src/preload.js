@@ -75,6 +75,11 @@ contextBridge.exposeInMainWorld('api', {
     state: () => ipcRenderer.invoke('update:state'),
     onState: (cb) => ipcRenderer.on('update', (_e, s) => cb(s)),
   },
+  titlebar: {
+    menu: () => ipcRenderer.invoke('titlebar:menu'),
+    invoke: (path) => ipcRenderer.send('titlebar:invoke', path),
+    overlay: (color, symbolColor) => ipcRenderer.send('titlebar:overlay', color, symbolColor),
+  },
   onMenu: (cb) => ipcRenderer.on('menu', (_e, id, arg) => cb(id, arg)),
   openExternal: (url) => ipcRenderer.send('openExternal', url),
   closeNow: () => ipcRenderer.send('app:closeNow'),
